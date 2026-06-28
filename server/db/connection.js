@@ -42,6 +42,8 @@ db.all2 = (sql, params = []) => {
     return Promise.reject(err);
   }
 };
+// Alias run2 = exec2
+db.run2 = db.exec2;
 
 // Init schema
 const schemaPath = path.join(__dirname, "schema.sql");
