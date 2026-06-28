@@ -76,16 +76,11 @@ export default function Login() {
           padding: "40px",
         }}>
           {/* Logo */}
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{
-              width: 44, height: 44, borderRadius: 12,
-              background: "rgba(255,255,255,0.15)",
-              backdropFilter: "blur(8px)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 22, border: "1px solid rgba(255,255,255,0.2)",
-            }}>
-              {CONFIG.logoEmoji}
-            </div>
+            <img
+              src="https://uit-lirboyo.ac.id/wp-content/uploads/2023/01/logo-UIT-3-1536x1536.png"
+              alt="Logo UIT"
+              style={{ width: 44, height: 44, borderRadius: 10, objectFit: "contain" }}
+            />
             <div>
               <div style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>
                 {CONFIG.namaAplikasi}
