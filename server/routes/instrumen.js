@@ -49,11 +49,11 @@ router.post("/", verifyToken, requireRole("admin"), async (req, res) => {
 // PUT update instrumen
 router.put("/:id", verifyToken, requireRole("admin"), async (req, res) => {
   try {
-    const { standar_id, pertanyaan, bobot } = req.body;
-    await db.run2(
-      "UPDATE instrumen SET standar_id=?, pertanyaan=?, bobot=? WHERE id=?",
-      [standar_id, pertanyaan, bobot || 1, req.params.id]
-    );
+  const { standar_id, prodi_id, periode_id, auditor1_id, auditor2_id, auditee_id } = req.body;
+  await db.run2(
+  "UPDATE instrumen SET standar_id=?, prodi_id=?, periode_id=?, auditor1_id=?, auditor2_id=?, auditee_id=? WHERE id=?",
+    [standar_id, prodi_id, periode_id, auditor1_id || null, auditor2_id || null, auditee_id || null, req.params.id]
+  );
     res.json({ message: "Instrumen diupdate" });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -69,11 +69,11 @@ router.delete("/:id", verifyToken, requireRole("admin"), async (req, res) => {
 // POST evaluasi auditee
 router.post("/evaluasi", verifyToken, requireRole("auditee"), async (req, res) => {
   try {
-    const { instrumen_id, periode_id, prodi_id, skor, catatan } = req.body;
-    const exists = await db.get2(
-      "SELECT id FROM evaluasi_auditee WHERE instrumen_id=? AND periode_id=? AND prodi_id=?",
-      [instrumen_id, periode_id, prodi_id]
-    );
+    const { standar_id, prodi_id, periode_id, auditor1_id, auditor2_id, auditee_id } = req.body;
+    await db.run2(
+    "INSERT INTO instrumen (standar_id, prodi_id, periode_id, auditor1_id, auditor2_id, auditee_id) VALUES (?,?,?,?,?,?)",
+    [standar_id, prodi_id, periode_id, auditor1_id || null, auditor2_id || null, auditee_id || null]
+  );
     if (exists) {
       await db.run2(
         "UPDATE evaluasi_auditee SET skor=?, catatan=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
