@@ -99,6 +99,7 @@ async function seed() {
   }
   console.log("✅ Skor Config: OK");
 
+  const allStandar = db.prepare("SELECT id FROM standar ORDER BY urutan").all();
  // Instrumen — buat satu instrumen per kombinasi standar x prodi
   const allProdi = db.prepare("SELECT id FROM prodi").all();
   const periodeRow = db.prepare("SELECT id FROM periode LIMIT 1").get();
