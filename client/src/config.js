@@ -10,9 +10,9 @@ const CONFIG = {
   tokenKey: "ami_token",
 
   theme: {
-    primary: "#2563EB",
-    primaryLight: "#EFF6FF",
-    primaryDark: "#1D4ED8",
+    primary: "#1cc058",
+    primaryLight: "#F0FDF4",
+    primaryDark: "#15803D",
     success: "#16A34A",
     successLight: "#F0FDF4",
     warning: "#F59E0B",
