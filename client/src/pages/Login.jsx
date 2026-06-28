@@ -7,9 +7,9 @@ import CONFIG from "../config.js";
 const T = CONFIG.theme;
 
 const demoAccounts = [
-  { role: "Admin",   username: "admin",    password: "admin123" },
-  { role: "Auditor", username: "auditor1", password: "auditor123" },
-  { role: "Auditee", username: "auditee1", password: "auditee123" },
+  { role: "Admin",   username: "admin",       password: "admin123" },
+  { role: "Auditor", username: "auditor1",    password: "audit123" },
+  { role: "Auditee", username: "auditee_pai", password: "auditee123" },
 ];
 
 export default function Login() {
