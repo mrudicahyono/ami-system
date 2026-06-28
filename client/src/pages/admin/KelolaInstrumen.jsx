@@ -60,7 +60,7 @@ export default function KelolaInstrumen() {
       if (filters.prodi_id)   params.prodi_id   = filters.prodi_id;
       if (filters.status)     params.status     = filters.status;
       const res = await api.get("/instrumen", { params });
-      setData(res.data.data.instrumen || []);
+      setData(res.data
       setPage(1);
     } catch (err) {
       setError(err.response?.data?.message || "Gagal memuat data.");
