@@ -1,6 +1,6 @@
 const path = require("path");
 const fs = require("fs");
-const sqlite3 = require("sqlite3").verbose();
+const Database = require("better-sqlite3");
 const bcrypt = require("bcryptjs");
 const config = require("../config");
 
@@ -8,20 +8,8 @@ const dbPath = path.resolve(config.DB_PATH);
 const dbDir = path.dirname(dbPath);
 if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
 
-const db = new sqlite3.Database(dbPath);
-
-const run = (sql, params = []) =>
-  new Promise((res, rej) =>
-    db.run(sql, params, function (err) {
-      if (err) return rej(err);
-      res({ lastID: this.lastID, changes: this.changes });
-    })
-  );
-
-const get = (sql, params = []) =>
-  new Promise((res, rej) =>
-    db.get(sql, params, (err, row) => (err ? rej(err) : res(row)))
-  );
+const db = new Database(dbPath);
+db.pragma("foreign_keys = ON");
 
 async function seed() {
   console.log("🌱 Memulai seed database AMI...");
@@ -29,15 +17,7 @@ async function seed() {
   // Schema
   const schemaPath = path.join(__dirname, "schema.sql");
   const schema = fs.readFileSync(schemaPath, "utf8");
-
-  await new Promise((res, rej) => {
-    db.serialize(() => {
-      db.run("PRAGMA foreign_keys = ON");
-      const stmts = schema.split(";").map(s => s.trim()).filter(Boolean);
-      stmts.forEach(s => db.run(s));
-      db.run("SELECT 1", [], err => err ? rej(err) : res());
-    });
-  });
+  db.exec(schema);
 
   // Standar SN-Dikti
   const standar = [
@@ -52,8 +32,8 @@ async function seed() {
     "Standar Penelitian dan PKM",
   ];
   for (let i = 0; i < standar.length; i++) {
-    const exists = await get("SELECT id FROM standar WHERE nama=?", [standar[i]]);
-    if (!exists) await run("INSERT INTO standar (nama, urutan) VALUES (?,?)", [standar[i], i + 1]);
+    const exists = db.prepare("SELECT id FROM standar WHERE nama=?").get(standar[i]);
+    if (!exists) db.prepare("INSERT INTO standar (nama, urutan) VALUES (?,?)").run(standar[i], i + 1);
   }
   console.log("✅ Standar SN-Dikti: OK");
 
@@ -66,19 +46,19 @@ async function seed() {
     ["PIAUD", "Pendidikan Islam Anak Usia Dini"],
   ];
   for (const [kode, nama] of prodi) {
-    const exists = await get("SELECT id FROM prodi WHERE kode=?", [kode]);
-    if (!exists) await run("INSERT INTO prodi (kode, nama) VALUES (?,?)", [kode, nama]);
+    const exists = db.prepare("SELECT id FROM prodi WHERE kode=?").get(kode);
+    if (!exists) db.prepare("INSERT INTO prodi (kode, nama) VALUES (?,?)").run(kode, nama);
   }
   console.log("✅ Prodi: OK");
 
   // Periode
-  const periodeExists = await get("SELECT id FROM periode WHERE nama=?", ["AMI 2024/2025 Semester Ganjil"]);
   let periodeId;
+  const periodeExists = db.prepare("SELECT id FROM periode WHERE nama=?").get("AMI 2024/2025 Semester Ganjil");
   if (!periodeExists) {
-    const r = await run("INSERT INTO periode (nama, tahun, semester, status) VALUES (?,?,?,?)", [
+    const r = db.prepare("INSERT INTO periode (nama, tahun, semester, status) VALUES (?,?,?,?)").run(
       "AMI 2024/2025 Semester Ganjil", "2024/2025", "Ganjil", "aktif"
-    ]);
-    periodeId = r.lastID;
+    );
+    periodeId = r.lastInsertRowid;
   } else {
     periodeId = periodeExists.id;
   }
@@ -95,11 +75,12 @@ async function seed() {
     ["Ketua Prodi PBA", "auditee_pba", "auditee123", "auditee", "KB"],
   ];
   for (const [nama, username, password, role, avatar] of users) {
-    const exists = await get("SELECT id FROM users WHERE username=?", [username]);
+    const exists = db.prepare("SELECT id FROM users WHERE username=?").get(username);
     if (!exists) {
       const hash = await bcrypt.hash(password, 10);
-      await run("INSERT INTO users (nama, username, password_hash, role, avatar) VALUES (?,?,?,?,?)",
-        [nama, username, hash, role, avatar]);
+      db.prepare("INSERT INTO users (nama, username, password_hash, role, avatar) VALUES (?,?,?,?,?)").run(
+        nama, username, hash, role, avatar
+      );
     }
   }
   console.log("✅ Users (7): OK");
@@ -113,15 +94,13 @@ async function seed() {
     [4, "Sangat Baik", "#3b82f6"],
   ];
   for (const [nilai, label, warna] of skorConfig) {
-    const exists = await get("SELECT id FROM skor_config WHERE nilai=?", [nilai]);
-    if (!exists) await run("INSERT INTO skor_config (nilai, label, warna) VALUES (?,?,?)", [nilai, label, warna]);
+    const exists = db.prepare("SELECT id FROM skor_config WHERE nilai=?").get(nilai);
+    if (!exists) db.prepare("INSERT INTO skor_config (nilai, label, warna) VALUES (?,?,?)").run(nilai, label, warna);
   }
   console.log("✅ Skor Config: OK");
 
   // Instrumen
-  const allStandar = await new Promise((res, rej) =>
-    db.all("SELECT id, nama FROM standar ORDER BY urutan", [], (err, rows) => err ? rej(err) : res(rows))
-  );
+  const allStandar = db.prepare("SELECT id, nama FROM standar ORDER BY urutan").all();
   const instrumenData = [
     [0, "Ketersediaan dokumen profil lulusan yang terukur"],
     [0, "Kesesuaian CPL dengan KKNI dan visi misi"],
@@ -151,25 +130,19 @@ async function seed() {
     [8, "Keterlibatan mahasiswa dalam penelitian"],
     [8, "Kegiatan pengabdian masyarakat berbasis riset"],
   ];
-
   for (const [standarIdx, pertanyaan] of instrumenData) {
     const standarId = allStandar[standarIdx]?.id;
     if (!standarId) continue;
-    const exists = await get("SELECT id FROM instrumen WHERE pertanyaan=?", [pertanyaan]);
-    if (!exists) {
-      await run("INSERT INTO instrumen (standar_id, pertanyaan, bobot) VALUES (?,?,?)",
-        [standarId, pertanyaan, 1]);
-    }
+    const exists = db.prepare("SELECT id FROM instrumen WHERE pertanyaan=?").get(pertanyaan);
+    if (!exists) db.prepare("INSERT INTO instrumen (standar_id, pertanyaan, bobot) VALUES (?,?,?)").run(standarId, pertanyaan, 1);
   }
   console.log("✅ Instrumen (27): OK");
 
   console.log("\n🎉 Seed selesai!");
-  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   console.log("Akun login:");
-  console.log("  admin     / admin123");
-  console.log("  auditor1  / audit123");
+  console.log("  admin       / admin123");
+  console.log("  auditor1    / audit123");
   console.log("  auditee_pai / auditee123");
-  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
   db.close();
 }
