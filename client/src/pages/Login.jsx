@@ -10,7 +10,7 @@ const demoAccounts = [
 ];
 
 // Ganti URL ini dengan gambar kampus UIT Lirboyo
-const BG_IMAGE = "https://images.unsplash.com/photo-1562774053-701939374585?w=800&q=80";
+const BG_IMAGE = "https://lh3.googleusercontent.com/gps-cs-s/APNQkAGJwwEnL7-7dWa9Y2TgYiJiidzEhpPRMrt0-xmUEsrCkbuZYfEKv92e1DtpJqBbZXwkQKsMoNYJsGXKOzDxh_Unbd0WrhF9XKznid1K1kp4THYT6RmiXf3og_0oMUTZSXbQFxtH=s1360-w1360-h1020-rw";
 
 export default function Login() {
   const { login } = useAuth();
@@ -258,7 +258,7 @@ export default function Login() {
               disabled={loading}
               style={{
                 width: "100%", padding: "13px",
-                background: loading ? "#86EFAC" : "#2563EB",
+                background: loading ? "#86EFAC" : "#16A34A",
                 color: "#fff", border: "none",
                 borderRadius: 10, fontSize: 15,
                 fontWeight: 600, cursor: loading ? "not-allowed" : "pointer",
@@ -267,7 +267,7 @@ export default function Login() {
                 letterSpacing: "0.2px",
               }}
               onMouseEnter={(e) => { if (!loading) e.currentTarget.style.background = "#15803D"; }}
-              onMouseLeave={(e) => { if (!loading) e.currentTarget.style.background = "#2563EB"; }}
+              onMouseLeave={(e) => { if (!loading) e.currentTarget.style.background = "#16A34A"; }}
             >
               {loading ? "Memproses..." : "Masuk"}
             </button>
