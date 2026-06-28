@@ -1,0 +1,32 @@
+# Dependensi Node.js
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# Database SQLite (jangan commit data!)
+data/
+*.db
+*.db-shm
+*.db-wal
+
+# File upload pengguna
+uploads/*
+!uploads/.gitkeep
+
+# Environment variables (rahasia!)
+.env
+
+# Build output frontend
+client/dist/
+
+# Log file
+*.log
+npm-debug.log*
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/

@@ -1,0 +1,16 @@
+{
+  "name": "ami-project",
+  "version": "1.0.0",
+  "description": "Sistem Audit Mutu Internal - Universitas Islam Tribakti Lirboyo",
+  "scripts": {
+    "dev":    "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd server && node index.js",
+    "client": "cd client && npm run dev",
+    "seed":   "cd server && node db/seed.js",
+    "build":  "cd client && npm run build",
+    "start":  "cd server && NODE_ENV=production node index.js"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+}
