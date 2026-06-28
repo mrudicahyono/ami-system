@@ -56,11 +56,14 @@ export default function Sidebar({ collapsed, onClose }) {
           borderBottom: `1px solid ${T.border}`,
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <img
-                src="https://uit-lirboyo.ac.id/wp-content/uploads/2023/01/logo-UIT-3-1536x1536.png"
-                alt="Logo UIT"
-                style={{ width: 40, height: 40, borderRadius: T.radiusSm, objectFit: "contain" }}
-              />
+            <div style={{
+              width: 40, height: 40, borderRadius: T.radiusSm,
+              background: T.primary, display: "flex",
+              alignItems: "center", justifyContent: "center",
+              fontSize: 20,
+            }}>
+              {CONFIG.logoEmoji}
+            </div>
             <div>
               <div style={{ fontWeight: 700, fontSize: 15, color: T.textPrimary, lineHeight: 1.2 }}>
                 {CONFIG.namaAplikasi}
