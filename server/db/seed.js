@@ -99,44 +99,21 @@ async function seed() {
   }
   console.log("✅ Skor Config: OK");
 
-  // Instrumen
-  const allStandar = db.prepare("SELECT id, nama FROM standar ORDER BY urutan").all();
-  const instrumenData = [
-    [0, "Ketersediaan dokumen profil lulusan yang terukur"],
-    [0, "Kesesuaian CPL dengan KKNI dan visi misi"],
-    [0, "Keterlibatan stakeholder dalam perumusan CPL"],
-    [1, "Ketersediaan dokumen kurikulum OBE"],
-    [1, "Pemetaan mata kuliah terhadap CPL"],
-    [1, "Kesesuaian beban SKS dengan peraturan"],
-    [2, "Ketersediaan RPS setiap mata kuliah"],
-    [2, "Kesesuaian metode pembelajaran dengan CPL"],
-    [2, "Pelaksanaan pembelajaran student-centered"],
-    [3, "Ketersediaan rubrik penilaian"],
-    [3, "Kesesuaian soal ujian dengan CPL"],
-    [3, "Transparansi hasil penilaian kepada mahasiswa"],
-    [4, "Kualifikasi akademik dosen (S2/S3)"],
-    [4, "Beban kerja dosen sesuai ketentuan"],
-    [4, "Pengembangan kompetensi dosen"],
-    [5, "Ketersediaan ruang kuliah yang memadai"],
-    [5, "Kelengkapan fasilitas laboratorium"],
-    [5, "Akses perpustakaan dan e-journal"],
-    [6, "Ketersediaan dokumen renstra prodi"],
-    [6, "Sistem penjaminan mutu internal prodi"],
-    [6, "Keterlaksanaan rapat rutin prodi"],
-    [7, "Transparansi pengelolaan keuangan"],
-    [7, "Kecukupan dana operasional pembelajaran"],
-    [7, "Pertanggungjawaban penggunaan anggaran"],
-    [8, "Jumlah publikasi dosen per tahun"],
-    [8, "Keterlibatan mahasiswa dalam penelitian"],
-    [8, "Kegiatan pengabdian masyarakat berbasis riset"],
-  ];
-  for (const [standarIdx, pertanyaan] of instrumenData) {
-    const standarId = allStandar[standarIdx]?.id;
-    if (!standarId) continue;
-    const exists = db.prepare("SELECT id FROM instrumen WHERE pertanyaan=?").get(pertanyaan);
-    if (!exists) db.prepare("INSERT INTO instrumen (standar_id, pertanyaan, bobot) VALUES (?,?,?)").run(standarId, pertanyaan, 1);
+ // Instrumen — buat satu instrumen per kombinasi standar x prodi
+  const allProdi = db.prepare("SELECT id FROM prodi").all();
+  const periodeRow = db.prepare("SELECT id FROM periode LIMIT 1").get();
+
+  for (const s of allStandar) {
+    for (const p of allProdi) {
+      const exists = db.prepare("SELECT id FROM instrumen WHERE standar_id=? AND prodi_id=?").get(s.id, p.id);
+      if (!exists) {
+        db.prepare("INSERT INTO instrumen (standar_id, prodi_id, periode_id, status) VALUES (?,?,?,?)").run(
+          s.id, p.id, periodeRow.id, "belum"
+        );
+      }
+    }
   }
-  console.log("✅ Instrumen (27): OK");
+  console.log("✅ Instrumen: OK");
 
   console.log("\n🎉 Seed selesai!");
   console.log("Akun login:");
