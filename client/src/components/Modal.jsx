@@ -24,13 +24,6 @@ export default function Modal({ open, onClose, title, children, wide = false, fo
 
   return (
     <div
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-      style={{
-        position: "fixed", inset: 0, zIndex: 100,
-        background: "rgba(0,0,0,0.5)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        padding: "16px",
-      }}
     >
       <div style={{
         background: T.bgCard,
