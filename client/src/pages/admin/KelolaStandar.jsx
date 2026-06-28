@@ -24,7 +24,7 @@ export default function KelolaStandar() {
     setError("");
     try {
       const res = await api.get("/standar");
-      setData(res.data.data.standar || []);
+      setData(res.data || []);
     } catch (err) {
       setError(err.response?.data?.message || "Gagal memuat data.");
     } finally {
