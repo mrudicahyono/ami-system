@@ -55,9 +55,9 @@ async function seed() {
   let periodeId;
   const periodeExists = db.prepare("SELECT id FROM periode WHERE nama=?").get("AMI 2024/2025 Semester Ganjil");
   if (!periodeExists) {
-    const r = db.prepare("INSERT INTO periode (nama, tahun, semester, status) VALUES (?,?,?,?)").run(
-      "AMI 2024/2025 Semester Ganjil", "2024/2025", "Ganjil", "aktif"
-    );
+    const r = db.prepare("INSERT INTO periode (nama, aktif) VALUES (?,?)").run(
+  "AMI 2024/2025 Semester Ganjil", 1
+  );
     periodeId = r.lastInsertRowid;
   } else {
     periodeId = periodeExists.id;
