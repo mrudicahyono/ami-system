@@ -16,7 +16,7 @@ console.log("✅ Database connected:", dbPath);
 db.exec2 = (sql, params = []) => {
   try {
     const stmt = db.prepare(sql);
-    const result = stmt.run(params);
+    const result = stmt.run(...params);
     return Promise.resolve({ lastID: result.lastInsertRowid, changes: result.changes });
   } catch (err) {
     return Promise.reject(err);
@@ -27,7 +27,7 @@ db.exec2 = (sql, params = []) => {
 db.get2 = (sql, params = []) => {
   try {
     const stmt = db.prepare(sql);
-    return Promise.resolve(stmt.get(params));
+    return Promise.resolve(stmt.get(...params));
   } catch (err) {
     return Promise.reject(err);
   }
@@ -37,7 +37,7 @@ db.get2 = (sql, params = []) => {
 db.all2 = (sql, params = []) => {
   try {
     const stmt = db.prepare(sql);
-    return Promise.resolve(stmt.all(params));
+    return Promise.resolve(stmt.all(...params));
   } catch (err) {
     return Promise.reject(err);
   }
