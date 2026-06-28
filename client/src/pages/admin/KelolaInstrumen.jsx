@@ -43,11 +43,11 @@ export default function KelolaInstrumen() {
         api.get("/users"),
         api.get("/skor-config"),
       ]);
-      setStandar(s.data.data.standar || []);
-      setProdi(p.data.data.prodi || []);
-      setPeriode(per.data.data.periode || []);
-      setUsers(u.data.data.users || []);
-      setSkor(sk.data.data.skorConfig || []);
+      setStandar(s.data || []);
+      setProdi(p.data || []);
+      setPeriode(per.data || []);
+      setUsers(u.data || []);
+      setSkor(sk.data || []);
     } catch {}
   }, []);
 
@@ -151,16 +151,16 @@ export default function KelolaInstrumen() {
 
   const columns = [
     { key: "no",    label: "No",       width: 48,  align: "center", render: (_, __, i) => (page - 1) * pageSize + i + 1 },
-    { key: "standar_nama",  label: "Standar",  render: (_, r) => <span style={{ fontSize: 13 }}>{r.standar?.nama || "-"}</span> },
-    { key: "prodi_nama",    label: "Prodi",    render: (_, r) => (
+    { key: "standar_nama",  label: "Standar",  render: (_, r) => <span style={{ fontSize: 13 }}>{r.standar_nama || "-"}</span> },
+    { key: "prodi_nama", label: "Prodi", render: (_, r) => (
       <span>
-        <span style={{ fontWeight: 600, fontSize: 12, color: T.primary }}>{r.prodi?.kode}</span>
-        <span style={{ fontSize: 12, color: T.textSecondary, marginLeft: 4 }}>{r.prodi?.nama}</span>
+        <span style={{ fontWeight: 600, fontSize: 12, color: T.primary }}>{r.prodi_kode}</span>
+        <span style={{ fontSize: 12, color: T.textSecondary, marginLeft: 4 }}>{r.prodi_nama}</span>
       </span>
-    )},
-    { key: "auditor1", label: "Auditor 1", render: (_, r) => <span style={{ fontSize: 13 }}>{r.auditor1?.nama || "-"}</span> },
-    { key: "auditor2", label: "Auditor 2", render: (_, r) => <span style={{ fontSize: 13 }}>{r.auditor2?.nama || "-"}</span> },
-    { key: "auditee",  label: "Auditee",   render: (_, r) => <span style={{ fontSize: 13 }}>{r.auditee?.nama || "-"}</span> },
+)},
+    { key: "auditor1", label: "Auditor 1", render: (_, r) => <span style={{ fontSize: 13 }}>{r.auditor1_nama || "-"}</span> },
+    { key: "auditor2", label: "Auditor 2", render: (_, r) => <span style={{ fontSize: 13 }}>{r.auditor2_nama || "-"}</span> },
+    { key: "auditee",  label: "Auditee",   render: (_, r) => <span style={{ fontSize: 13 }}>{r.auditee_nama || "-"}</span> },
     { key: "status",   label: "Status",    render: (_, r) => <StatusBadge status={r.status} /> },
     { key: "skor",     label: "Skor",      align: "center", render: (_, r) => <SkorBadge skor={r.hasil_audit?.skor} skorConfig={skorConfig} /> },
     { key: "aksi",     label: "Aksi",      align: "center", render: (_, r) => (

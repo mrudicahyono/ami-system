@@ -9,10 +9,16 @@ router.get("/", verifyToken, async (req, res) => {
     const { standar_id, prodi_id, periode_id } = req.query;
     let sql = `
       SELECT i.*, s.nama as standar_nama,
-        ev.skor as skor_auditee, ev.catatan as catatan_auditee, ev.file_path,
-        ha.skor as skor_auditor, ha.catatan as catatan_auditor, ha.status
+      p.kode as prodi_kode, p.nama as prodi_nama,
+      u1.nama as auditor1_nama, u2.nama as auditor2_nama, ua.nama as auditee_nama,
+      ev.skor as skor_auditee, ev.catatan as catatan_auditee, ev.file_path,
+      ha.skor as skor_auditor, ha.catatan as catatan_auditor, ha.status
       FROM instrumen i
       JOIN standar s ON i.standar_id = s.id
+      JOIN prodi p ON i.prodi_id = p.id
+      LEFT JOIN users u1 ON i.auditor1_id = u1.id
+      LEFT JOIN users u2 ON i.auditor2_id = u2.id
+      LEFT JOIN users ua ON i.auditee_id = ua.id
       LEFT JOIN evaluasi_auditee ev ON ev.instrumen_id = i.id
         AND ev.periode_id = ? AND ev.prodi_id = ?
       LEFT JOIN hasil_audit ha ON ha.instrumen_id = i.id
