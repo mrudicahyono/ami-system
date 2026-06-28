@@ -1,9 +1,5 @@
--- Skema database AMI (Audit Mutu Internal)
--- Universitas Islam Tribakti Lirboyo Kediri
-
 PRAGMA foreign_keys = ON;
 
--- Tabel pengguna sistem
 CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   nama TEXT NOT NULL,
@@ -14,7 +10,6 @@ CREATE TABLE IF NOT EXISTS users (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabel standar audit (SN-Dikti)
 CREATE TABLE IF NOT EXISTS standar (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   nama TEXT NOT NULL,
@@ -22,7 +17,6 @@ CREATE TABLE IF NOT EXISTS standar (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabel program studi / unit
 CREATE TABLE IF NOT EXISTS prodi (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   kode TEXT NOT NULL UNIQUE,
@@ -30,7 +24,6 @@ CREATE TABLE IF NOT EXISTS prodi (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabel periode audit
 CREATE TABLE IF NOT EXISTS periode (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   nama TEXT NOT NULL,
@@ -38,7 +31,6 @@ CREATE TABLE IF NOT EXISTS periode (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabel konfigurasi skala skor
 CREATE TABLE IF NOT EXISTS skor_config (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   nilai INTEGER NOT NULL UNIQUE CHECK(nilai BETWEEN 0 AND 4),
@@ -47,7 +39,6 @@ CREATE TABLE IF NOT EXISTS skor_config (
   bg_warna TEXT NOT NULL DEFAULT '#F3F4F6'
 );
 
--- Tabel instrumen audit (penugasan)
 CREATE TABLE IF NOT EXISTS instrumen (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   standar_id INTEGER NOT NULL REFERENCES standar(id),
@@ -61,25 +52,28 @@ CREATE TABLE IF NOT EXISTS instrumen (
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabel evaluasi diri (diisi auditee)
-CREATE TABLE IF NOT EXISTS evaluasi_diri (
+CREATE TABLE IF NOT EXISTS evaluasi_auditee (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  instrumen_id INTEGER NOT NULL UNIQUE REFERENCES instrumen(id) ON DELETE CASCADE,
-  deskripsi TEXT,
+  instrumen_id INTEGER NOT NULL REFERENCES instrumen(id) ON DELETE CASCADE,
+  periode_id INTEGER NOT NULL REFERENCES periode(id),
+  prodi_id INTEGER NOT NULL REFERENCES prodi(id),
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  skor INTEGER CHECK(skor BETWEEN 0 AND 4),
+  catatan TEXT,
   file_path TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabel hasil audit (diisi auditor)
 CREATE TABLE IF NOT EXISTS hasil_audit (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  instrumen_id INTEGER NOT NULL UNIQUE REFERENCES instrumen(id) ON DELETE CASCADE,
+  instrumen_id INTEGER NOT NULL REFERENCES instrumen(id) ON DELETE CASCADE,
+  periode_id INTEGER NOT NULL REFERENCES periode(id),
+  prodi_id INTEGER NOT NULL REFERENCES prodi(id),
   auditor_id INTEGER NOT NULL REFERENCES users(id),
   skor INTEGER CHECK(skor BETWEEN 0 AND 4),
   catatan TEXT,
-  rekomendasi TEXT,
-  tindak_lanjut TEXT,
+  status TEXT DEFAULT 'sesuai',
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
