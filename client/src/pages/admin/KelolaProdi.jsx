@@ -23,7 +23,7 @@ export default function KelolaProdi() {
     setLoading(true); setError("");
     try {
       const res = await api.get("/prodi");
-      setData(res.data.data.prodi || []);
+      setData(res.data || []);
     } catch (err) {
       setError(err.response?.data?.message || "Gagal memuat data.");
     } finally { setLoading(false); }

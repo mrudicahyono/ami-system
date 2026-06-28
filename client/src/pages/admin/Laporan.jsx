@@ -22,7 +22,7 @@ export default function Laporan() {
     setLoading(true); setError("");
     try {
       const res = await api.get("/dashboard");
-      setData(res.data.data);
+      setData(res.data);
     } catch (err) {
       setError(err.response?.data?.message || "Gagal memuat data laporan.");
     } finally { setLoading(false); }

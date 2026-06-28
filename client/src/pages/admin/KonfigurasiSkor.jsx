@@ -19,7 +19,7 @@ export default function KonfigurasiSkor() {
     setLoading(true); setError("");
     try {
       const res = await api.get("/skor-config");
-      setData(res.data.data.skorConfig || []);
+      setData(res.data || []);
     } catch (err) {
       setError(err.response?.data?.message || "Gagal memuat data.");
     } finally { setLoading(false); }

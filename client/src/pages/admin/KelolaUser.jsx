@@ -30,7 +30,7 @@ export default function KelolaUser() {
     try {
       const params = filterRole ? { role: filterRole } : {};
       const res = await api.get("/users", { params });
-      setData(res.data.data.users || []);
+      setData(res.data || []);
       setPage(1);
     } catch (err) {
       setError(err.response?.data?.message || "Gagal memuat data.");

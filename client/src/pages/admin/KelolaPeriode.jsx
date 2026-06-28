@@ -23,7 +23,7 @@ export default function KelolaPeriode() {
     setLoading(true); setError("");
     try {
       const res = await api.get("/periode");
-      setData(res.data.data.periode || []);
+      setData(res.data || []);
     } catch (err) {
       setError(err.response?.data?.message || "Gagal memuat data.");
     } finally { setLoading(false); }
