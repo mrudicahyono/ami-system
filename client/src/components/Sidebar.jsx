@@ -148,24 +148,6 @@ export default function Sidebar({ collapsed, onClose }) {
               </div>
             </div>
           </div>
-
-          {/* Tombol logout */}
-          <button
-            onClick={handleLogout}
-            style={{
-              width: "100%", padding: "8px 12px",
-              display: "flex", alignItems: "center", gap: 8,
-              borderRadius: T.radiusSm, border: "none",
-              background: "transparent", color: T.danger,
-              fontSize: 13, fontWeight: 500, cursor: "pointer",
-              transition: "background 0.15s",
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = T.dangerLight}
-            onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
-          >
-            <span>🚪</span>
-            <span>{CONFIG.labels.logoutButton}</span>
-          </button>
         </div>
       </aside>
 

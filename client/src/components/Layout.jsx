@@ -1,51 +1,46 @@
-// Layout utama: Sidebar + Header + Content area
 import React, { useState, useCallback } from "react";
 import Sidebar from "./Sidebar.jsx";
 import Header from "./Header.jsx";
 import CONFIG from "../config.js";
-
 const T = CONFIG.theme;
 
 export default function Layout({ children, title }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [search, setSearch] = useState("");
-
   const toggleSidebar = useCallback(() => setSidebarOpen((v) => !v), []);
-  const closeSidebar = useCallback(() => setSidebarOpen(false), []);
 
   return (
-    <div style={{
-      display: "flex", minHeight: "100vh",
-      background: T.bgPage, fontFamily: T.fontFamily,
-    }}>
-      {/* Sidebar desktop (selalu tampil) */}
-      <div className="sidebar-desktop" style={{ width: 260, flexShrink: 0 }}>
-        <Sidebar collapsed={false} onClose={closeSidebar} />
+    <div style={{ display: "flex", minHeight: "100vh", background: T.bgPage, fontFamily: T.fontFamily }}>
+      {/* Sidebar */}
+      <div style={{
+        width: sidebarOpen ? 260 : 0,
+        flexShrink: 0,
+        overflow: "hidden",
+        transition: "width 0.25s ease",
+      }}>
+        {sidebarOpen && <Sidebar onClose={() => setSidebarOpen(false)} />}
       </div>
 
-      {/* Sidebar mobile (overlay, toggle) */}
+      {/* Overlay mobile */}
       {sidebarOpen && (
-        <div className="sidebar-mobile">
-          <div
-            onClick={closeSidebar}
-            style={{
-              position: "fixed", inset: 0,
-              background: "rgba(0,0,0,0.45)", zIndex: 45,
-            }}
-          />
-          <Sidebar collapsed={false} onClose={closeSidebar} />
-        </div>
+        <div
+          className="mobile-overlay"
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            display: "none",
+            position: "fixed", inset: 0,
+            background: "rgba(0,0,0,0.45)", zIndex: 45,
+          }}
+        />
       )}
 
-      {/* Area konten utama */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, marginLeft: 0 }}>
+      {/* Konten utama */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
         <Header
           onMenuToggle={toggleSidebar}
           searchValue={search}
           onSearchChange={setSearch}
         />
-
-        {/* Konten halaman */}
         <main style={{ flex: 1, padding: "24px", overflowX: "hidden" }}>
           {title && (
             <h1 style={{
@@ -61,10 +56,7 @@ export default function Layout({ children, title }) {
 
       <style>{`
         @media (max-width: 768px) {
-          .sidebar-desktop { display: none !important; }
-        }
-        @media (min-width: 769px) {
-          .sidebar-mobile { display: none !important; }
+          .mobile-overlay { display: block !important; }
         }
       `}</style>
     </div>
