@@ -66,7 +66,7 @@ export default function Login() {
         {/* Overlay gelap */}
         <div style={{
           position: "absolute", inset: 0,
-          background: "linear-gradient(160deg, rgba(15,23,42,0.7) 0%, rgba(37,99,235,0.75) 100%)",
+          background: "linear-gradient(160deg, rgba(15,23,42,0.7) 0%, rgba(22,163,74,0.75) 100%)",
         }} />
         {/* Konten di atas overlay */}
         <div style={{
@@ -191,7 +191,7 @@ export default function Login() {
                   }}
                   onFocus={(e) => {
                     e.target.style.borderColor = "#2563EB";
-                    e.target.style.boxShadow = "0 0 0 3px rgba(37,99,235,0.1)";
+                    e.target.style.boxShadow = "0 0 0 3px rgba(22,163,74,0.1)";
                   }}
                   onBlur={(e) => {
                     e.target.style.borderColor = "#E5E7EB";
@@ -258,15 +258,15 @@ export default function Login() {
               disabled={loading}
               style={{
                 width: "100%", padding: "13px",
-                background: loading ? "#93C5FD" : "#2563EB",
+                background: loading ? "#86EFAC" : "#2563EB",
                 color: "#fff", border: "none",
                 borderRadius: 10, fontSize: 15,
                 fontWeight: 600, cursor: loading ? "not-allowed" : "pointer",
                 transition: "background 0.2s, transform 0.1s",
-                boxShadow: "0 4px 14px rgba(37,99,235,0.35)",
+                boxShadow: "0 4px 14px rgba(22,163,74,0.35)",
                 letterSpacing: "0.2px",
               }}
-              onMouseEnter={(e) => { if (!loading) e.currentTarget.style.background = "#1D4ED8"; }}
+              onMouseEnter={(e) => { if (!loading) e.currentTarget.style.background = "#15803D"; }}
               onMouseLeave={(e) => { if (!loading) e.currentTarget.style.background = "#2563EB"; }}
             >
               {loading ? "Memproses..." : "Masuk"}
@@ -294,9 +294,9 @@ export default function Login() {
                   transition: "all 0.15s", whiteSpace: "nowrap",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "#2563EB";
+                  e.currentTarget.style.borderColor = "#16A34A";
                   e.currentTarget.style.color = "#2563EB";
-                  e.currentTarget.style.background = "#EFF6FF";
+                  e.currentTarget.style.background = "#F0FDF4";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.borderColor = "#E5E7EB";
