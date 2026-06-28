@@ -27,6 +27,8 @@ router.get("/", verifyToken, async (req, res) => {
     `;
     const params = [periode_id || 0, prodi_id || 0, periode_id || 0, prodi_id || 0];
     if (standar_id) { sql += " AND i.standar_id = ?"; params.push(standar_id); }
+    if (prodi_id)   { sql += " AND i.prodi_id = ?";   params.push(prodi_id); }
+    if (req.query.status) { sql += " AND i.status = ?"; params.push(req.query.status); }
     sql += " ORDER BY s.urutan, i.id";
     res.json(await db.all2(sql, params));
   } catch (err) { res.status(500).json({ message: err.message }); }
