@@ -32,8 +32,15 @@ if (!fs.existsSync(uploadDir)) {
 }
 app.use("/uploads", express.static(uploadDir));
 
-// ─── Inisialisasi Database ────────────────────────────────────────────────────
-require("./db/connection");
+// ─── Inisialisasi Database ──────────────────
+const db = require("./db/connection");
+
+// Auto-seed jika database kosong
+const userCount = db.prepare("SELECT COUNT(*) as count FROM users").get();
+if (userCount.count === 0) {
+  console.log("[SERVER] 🌱 Database kosong, menjalankan seed otomatis...");
+  require("./db/seed");
+}
 
 // ─── API Routes ───────────────────────────────────────────────────────────────
 app.use("/api/auth",       require("./routes/auth"));
