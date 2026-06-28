@@ -23,7 +23,7 @@ function AuthProvider({ children }) {
 
   const login = useCallback(async (username, password) => {
     const res = await api.post("/auth/login", { username, password });
-    const { token, user: userData } = res.data.data;
+    const { token, user: userData } = res.data;
     localStorage.setItem(CONFIG.tokenKey, token);
     localStorage.setItem("ami_user", JSON.stringify(userData));
     setUser(userData);
