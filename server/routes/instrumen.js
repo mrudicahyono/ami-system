@@ -66,15 +66,31 @@ router.post("/", verifyToken, requireRole("admin"), async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// PUT update instrumen (admin)
-router.put("/:id", verifyToken, requireRole("admin"), async (req, res) => {
+// PUT hasil audit auditor
+router.put("/:id/audit", verifyToken, requireRole("auditor"), async (req, res) => {
   try {
-    const { indikator_id, prodi_id, periode_id, auditor1_id, auditor2_id, auditee_id } = req.body;
-    await db.run2(
-      "UPDATE instrumen SET indikator_id=?, prodi_id=?, periode_id=?, auditor1_id=?, auditor2_id=?, auditee_id=? WHERE id=?",
-      [indikator_id, prodi_id, periode_id, auditor1_id || null, auditor2_id || null, auditee_id || null, req.params.id]
+    const { skor, catatan, rekomendasi, perlu_rtl } = req.body;
+    if (skor === undefined || skor === null)
+      return res.status(400).json({ message: "Skor wajib diisi" });
+    const instrumen = await db.get2("SELECT * FROM instrumen WHERE id=?", [req.params.id]);
+    if (!instrumen) return res.status(404).json({ message: "Instrumen tidak ditemukan" });
+    const exists = await db.get2(
+      "SELECT id FROM hasil_audit WHERE instrumen_id=? AND auditor_id=?",
+      [req.params.id, req.user.id]
     );
-    res.json({ message: "Instrumen diupdate" });
+    if (exists) {
+      await db.run2(
+        "UPDATE hasil_audit SET skor=?, catatan=?, rekomendasi=?, perlu_rtl=?, status=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+        [skor, catatan || null, rekomendasi || null, perlu_rtl ? 1 : 0, "sesuai", exists.id]
+      );
+    } else {
+      await db.run2(
+        "INSERT INTO hasil_audit (instrumen_id, periode_id, prodi_id, auditor_id, skor, catatan, rekomendasi, perlu_rtl, status) VALUES (?,?,?,?,?,?,?,?,?)",
+        [req.params.id, instrumen.periode_id, instrumen.prodi_id, req.user.id, skor, catatan || null, rekomendasi || null, perlu_rtl ? 1 : 0, "sesuai"]
+      );
+    }
+    await db.run2("UPDATE instrumen SET status='selesai', updated_at=CURRENT_TIMESTAMP WHERE id=?", [req.params.id]);
+    res.json({ message: "Hasil audit disimpan" });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
