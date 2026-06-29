@@ -19,6 +19,16 @@ async function seed() {
   const schema = fs.readFileSync(schemaPath, "utf8");
   db.exec(schema);
 
+  // App Config
+  const appConfigs = [
+    ["upload_max_size_mb", "10", "Batas Ukuran Upload PDF (MB)"],
+  ];
+  for (const [key, value, label] of appConfigs) {
+    const exists = db.prepare("SELECT id FROM app_config WHERE key=?").get(key);
+    if (!exists) db.prepare("INSERT INTO app_config (key, value, label) VALUES (?,?,?)").run(key, value, label);
+  }
+  console.log("✅ App Config: OK");
+
   // Standar SN-Dikti
   const standar = [
     "Standar Kompetensi Lulusan",
@@ -37,12 +47,73 @@ async function seed() {
   }
   console.log("✅ Standar SN-Dikti: OK");
 
+  // Indikator per Standar (contoh 2-3 indikator per standar)
+  const allStandar = db.prepare("SELECT id, nama FROM standar ORDER BY urutan").all();
+  const indikatorData = {
+    "Standar Kompetensi Lulusan": [
+      ["SKL-1", "Profil lulusan sesuai dengan visi dan misi program studi"],
+      ["SKL-2", "Capaian pembelajaran lulusan (CPL) ditetapkan dan dipublikasikan"],
+      ["SKL-3", "CPL mengacu pada KKNI dan SN-Dikti"],
+    ],
+    "Standar Isi Pembelajaran": [
+      ["ISI-1", "Kurikulum disusun berdasarkan CPL yang ditetapkan"],
+      ["ISI-2", "Struktur kurikulum mencakup mata kuliah wajib dan pilihan"],
+      ["ISI-3", "Beban studi sesuai dengan ketentuan SN-Dikti"],
+    ],
+    "Standar Proses Pembelajaran": [
+      ["PRS-1", "RPS disusun dan disosialisasikan kepada mahasiswa"],
+      ["PRS-2", "Proses pembelajaran berpusat pada mahasiswa (SCL)"],
+      ["PRS-3", "Monitoring dan evaluasi proses pembelajaran dilakukan secara berkala"],
+    ],
+    "Standar Penilaian Pembelajaran": [
+      ["PNL-1", "Sistem penilaian transparan dan akuntabel"],
+      ["PNL-2", "Teknik dan instrumen penilaian sesuai dengan CPL"],
+      ["PNL-3", "Hasil penilaian diumumkan kepada mahasiswa tepat waktu"],
+    ],
+    "Standar Dosen dan Tenaga Kependidikan": [
+      ["DTK-1", "Kualifikasi akademik dosen sesuai ketentuan"],
+      ["DTK-2", "Rasio dosen dan mahasiswa memenuhi standar"],
+      ["DTK-3", "Dosen aktif dalam penelitian dan pengabdian masyarakat"],
+    ],
+    "Standar Sarana dan Prasarana Pembelajaran": [
+      ["SPP-1", "Ruang kuliah memadai dan kondusif untuk pembelajaran"],
+      ["SPP-2", "Perpustakaan memiliki koleksi yang relevan dan memadai"],
+      ["SPP-3", "Laboratorium dan fasilitas pendukung tersedia"],
+    ],
+    "Standar Pengelolaan Pembelajaran": [
+      ["PGL-1", "Rencana strategis program studi tersedia dan diimplementasikan"],
+      ["PGL-2", "Sistem penjaminan mutu internal berjalan efektif"],
+      ["PGL-3", "Laporan kinerja program studi disusun secara berkala"],
+    ],
+    "Standar Pembiayaan Pembelajaran": [
+      ["PMB-1", "Anggaran pembelajaran direncanakan dan dikelola secara transparan"],
+      ["PMB-2", "Sumber pembiayaan beragam dan mencukupi kebutuhan"],
+    ],
+    "Standar Penelitian dan PKM": [
+      ["PKM-1", "Roadmap penelitian dan PKM tersedia dan diimplementasikan"],
+      ["PKM-2", "Dosen dan mahasiswa aktif dalam penelitian dan PKM"],
+      ["PKM-3", "Hasil penelitian dipublikasikan di jurnal bereputasi"],
+    ],
+  };
+
+  for (const s of allStandar) {
+    const indikators = indikatorData[s.nama] || [];
+    for (let i = 0; i < indikators.length; i++) {
+      const [kode, deskripsi] = indikators[i];
+      const exists = db.prepare("SELECT id FROM indikator WHERE kode=? AND standar_id=?").get(kode, s.id);
+      if (!exists) {
+        db.prepare("INSERT INTO indikator (standar_id, kode, deskripsi, urutan) VALUES (?,?,?,?)").run(s.id, kode, deskripsi, i + 1);
+      }
+    }
+  }
+  console.log("✅ Indikator: OK");
+
   // Prodi
   const prodi = [
-    ["PAI", "Pendidikan Agama Islam"],
-    ["HES", "Hukum Ekonomi Syariah"],
-    ["MPI", "Manajemen Pendidikan Islam"],
-    ["PBA", "Pendidikan Bahasa Arab"],
+    ["PAI",   "Pendidikan Agama Islam"],
+    ["HES",   "Hukum Ekonomi Syariah"],
+    ["MPI",   "Manajemen Pendidikan Islam"],
+    ["PBA",   "Pendidikan Bahasa Arab"],
     ["PIAUD", "Pendidikan Islam Anak Usia Dini"],
   ];
   for (const [kode, nama] of prodi) {
@@ -55,9 +126,7 @@ async function seed() {
   let periodeId;
   const periodeExists = db.prepare("SELECT id FROM periode WHERE nama=?").get("AMI 2024/2025 Semester Ganjil");
   if (!periodeExists) {
-    const r = db.prepare("INSERT INTO periode (nama, aktif) VALUES (?,?)").run(
-  "AMI 2024/2025 Semester Ganjil", 1
-  );
+    const r = db.prepare("INSERT INTO periode (nama, aktif) VALUES (?,?)").run("AMI 2024/2025 Semester Ganjil", 1);
     periodeId = r.lastInsertRowid;
   } else {
     periodeId = periodeExists.id;
@@ -66,51 +135,46 @@ async function seed() {
 
   // Users
   const users = [
-    ["Administrator", "admin", "admin123", "admin", "AD"],
-    ["Dr. Ahmad Fauzi, M.Pd", "auditor1", "audit123", "auditor", "AF"],
-    ["Ustadz Hasan Basri, M.Ag", "auditor2", "audit123", "auditor", "HB"],
-    ["Ketua Prodi PAI", "auditee_pai", "auditee123", "auditee", "KP"],
-    ["Ketua Prodi HES", "auditee_hes", "auditee123", "auditee", "KH"],
-    ["Ketua Prodi MPI", "auditee_mpi", "auditee123", "auditee", "KM"],
-    ["Ketua Prodi PBA", "auditee_pba", "auditee123", "auditee", "KB"],
+    ["Administrator",          "admin",       "admin123",    "admin",   "AD"],
+    ["Dr. Ahmad Fauzi, M.Pd", "auditor1",    "audit123",    "auditor", "AF"],
+    ["Ustadz Hasan Basri, M.Ag", "auditor2", "audit123",    "auditor", "HB"],
+    ["Ketua Prodi PAI",       "auditee_pai", "auditee123",  "auditee", "KP"],
+    ["Ketua Prodi HES",       "auditee_hes", "auditee123",  "auditee", "KH"],
+    ["Ketua Prodi MPI",       "auditee_mpi", "auditee123",  "auditee", "KM"],
+    ["Ketua Prodi PBA",       "auditee_pba", "auditee123",  "auditee", "KB"],
   ];
   for (const [nama, username, password, role, avatar] of users) {
     const exists = db.prepare("SELECT id FROM users WHERE username=?").get(username);
     if (!exists) {
       const hash = await bcrypt.hash(password, 10);
-      db.prepare("INSERT INTO users (nama, username, password_hash, role, avatar) VALUES (?,?,?,?,?)").run(
-        nama, username, hash, role, avatar
-      );
+      db.prepare("INSERT INTO users (nama, username, password_hash, role, avatar) VALUES (?,?,?,?,?)").run(nama, username, hash, role, avatar);
     }
   }
-  console.log("✅ Users (7): OK");
+  console.log("✅ Users: OK");
 
   // Skor config
   const skorConfig = [
-    [0, "Tidak Ada", "#ef4444"],
-    [1, "Kurang", "#f97316"],
-    [2, "Cukup", "#eab308"],
-    [3, "Baik", "#22c55e"],
-    [4, "Sangat Baik", "#3b82f6"],
+    [0, "Tidak Ada", "#ef4444", "#FEE2E2"],
+    [1, "Kurang",    "#f97316", "#FFF0E6"],
+    [2, "Cukup",     "#eab308", "#FEFCE8"],
+    [3, "Baik",      "#22c55e", "#F0FDF4"],
+    [4, "Sangat Baik","#3b82f6","#EFF6FF"],
   ];
-  for (const [nilai, label, warna] of skorConfig) {
+  for (const [nilai, label, warna, bg_warna] of skorConfig) {
     const exists = db.prepare("SELECT id FROM skor_config WHERE nilai=?").get(nilai);
-    if (!exists) db.prepare("INSERT INTO skor_config (nilai, label, warna) VALUES (?,?,?)").run(nilai, label, warna);
+    if (!exists) db.prepare("INSERT INTO skor_config (nilai, label, warna, bg_warna) VALUES (?,?,?,?)").run(nilai, label, warna, bg_warna);
   }
   console.log("✅ Skor Config: OK");
 
-  const allStandar = db.prepare("SELECT id FROM standar ORDER BY urutan").all();
- // Instrumen — buat satu instrumen per kombinasi standar x prodi
+  // Instrumen — satu per kombinasi indikator x prodi
+  const allIndikator = db.prepare("SELECT id FROM indikator").all();
   const allProdi = db.prepare("SELECT id FROM prodi").all();
-  const periodeRow = db.prepare("SELECT id FROM periode LIMIT 1").get();
 
-  for (const s of allStandar) {
+  for (const ind of allIndikator) {
     for (const p of allProdi) {
-      const exists = db.prepare("SELECT id FROM instrumen WHERE standar_id=? AND prodi_id=?").get(s.id, p.id);
+      const exists = db.prepare("SELECT id FROM instrumen WHERE indikator_id=? AND prodi_id=? AND periode_id=?").get(ind.id, p.id, periodeId);
       if (!exists) {
-        db.prepare("INSERT INTO instrumen (standar_id, prodi_id, periode_id, status) VALUES (?,?,?,?)").run(
-          s.id, p.id, periodeRow.id, "belum"
-        );
+        db.prepare("INSERT INTO instrumen (indikator_id, prodi_id, periode_id, status) VALUES (?,?,?,?)").run(ind.id, p.id, periodeId, "belum");
       }
     }
   }
