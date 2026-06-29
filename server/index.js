@@ -52,6 +52,8 @@ app.use("/api/skor-config",require("./routes/skorConfig"));
 app.use("/api/instrumen",  require("./routes/instrumen"));
 app.use("/api/upload",     require("./routes/upload"));
 app.use("/api/dashboard",  require("./routes/dashboard"));
+app.use("/api/indikator",   require("./routes/indikator"));
+app.use("/api/app-config",  require("./routes/appConfig"));
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get("/api/health", (req, res) => {
