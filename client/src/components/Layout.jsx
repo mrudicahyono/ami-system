@@ -4,6 +4,8 @@ import Header from "./Header.jsx";
 import CONFIG from "../config.js";
 const T = CONFIG.theme;
 
+const SIDEBAR_WIDTH = 260;
+
 export default function Layout({ children, title }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [search, setSearch] = useState("");
@@ -11,14 +13,15 @@ export default function Layout({ children, title }) {
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: T.bgPage, fontFamily: T.fontFamily }}>
-      {/* Sidebar */}
+
+      {/* Sidebar — fixed, geser pakai transform */}
       <div style={{
-        width: sidebarOpen ? 260 : 0,
-        flexShrink: 0,
-        overflow: "hidden",
-        transition: "width 0.25s ease",
+        position: "fixed", top: 0, left: 0, bottom: 0,
+        width: SIDEBAR_WIDTH, zIndex: 50,
+        transform: sidebarOpen ? "translateX(0)" : `translateX(-${SIDEBAR_WIDTH}px)`,
+        transition: "transform 0.25s ease",
       }}>
-        {sidebarOpen && <Sidebar onClose={() => setSidebarOpen(false)} />}
+        <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
       {/* Overlay mobile */}
@@ -34,8 +37,13 @@ export default function Layout({ children, title }) {
         />
       )}
 
-      {/* Konten utama */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+      {/* Konten utama — margin kiri menyesuaikan sidebar */}
+      <div style={{
+        flex: 1,
+        marginLeft: sidebarOpen ? SIDEBAR_WIDTH : 0,
+        transition: "margin-left 0.25s ease",
+        display: "flex", flexDirection: "column", minWidth: 0,
+      }}>
         <Header
           onMenuToggle={toggleSidebar}
           searchValue={search}
