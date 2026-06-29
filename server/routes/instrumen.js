@@ -35,6 +35,13 @@ router.get("/", verifyToken, async (req, res) => {
     if (prodi_id)     { sql += " AND i.prodi_id = ?";     params.push(prodi_id); }
     if (periode_id)   { sql += " AND i.periode_id = ?";   params.push(periode_id); }
     if (status)       { sql += " AND i.status = ?";       params.push(status); }
+    if (req.user.role === "auditee") {
+      sql += " AND i.auditee_id = ?";
+      params.push(req.user.id);
+    } else if (req.user.role === "auditor") {
+      sql += " AND (i.auditor1_id = ? OR i.auditor2_id = ?)";
+      params.push(req.user.id, req.user.id);
+    }
     sql += " ORDER BY s.urutan, ind.urutan, i.id";
     res.json(await db.all2(sql, params));
   } catch (err) { res.status(500).json({ message: err.message }); }

@@ -33,7 +33,8 @@ router.get("/", verifyToken, async (req, res) => {
     const skorPerStandar = await db.all2(`
       SELECT s.nama as standar, AVG(ha.skor) as rataSkor, COUNT(ha.id) as jumlahDinilai
       FROM standar s
-      LEFT JOIN instrumen i ON i.standar_id = s.id ${prodi_id ? "AND i.prodi_id = ?" : ""}
+      LEFT JOIN indikator ind ON ind.standar_id = s.id
+      LEFT JOIN instrumen i ON i.indikator_id = ind.id ${prodi_id ? "AND i.prodi_id = ?" : ""}
       LEFT JOIN hasil_audit ha ON ha.instrumen_id = i.id
       GROUP BY s.id ORDER BY s.urutan
     `, prodiParam);
