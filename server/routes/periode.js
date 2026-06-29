@@ -11,28 +11,45 @@ router.get("/", verifyToken, async (req, res) => {
 
 router.post("/", verifyToken, requireRole("admin"), async (req, res) => {
   try {
-    const { nama, tahun, semester } = req.body;
-    if (!nama || !tahun || !semester)
-      return res.status(400).json({ message: "Semua field wajib diisi" });
+    const { nama, aktif } = req.body;
+    if (!nama || !nama.trim())
+      return res.status(400).json({ message: "Nama periode wajib diisi" });
+    if (aktif) {
+      await db.run2("UPDATE periode SET aktif=0");
+    }
     const r = await db.run2(
-      "INSERT INTO periode (nama, tahun, semester, status) VALUES (?,?,?,?)",
-      [nama, tahun, semester, "draft"]
+      "INSERT INTO periode (nama, aktif) VALUES (?,?)",
+      [nama.trim(), aktif ? 1 : 0]
     );
-    res.status(201).json({ id: r.lastID, nama, tahun, semester, status: "draft" });
+    res.status(201).json({ id: r.lastID, nama, aktif: aktif ? 1 : 0 });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
 router.put("/:id", verifyToken, requireRole("admin"), async (req, res) => {
   try {
-    const { nama, tahun, semester, status } = req.body;
-    if (status === "aktif") {
-      await db.run2("UPDATE periode SET status='selesai' WHERE status='aktif'");
+    const { nama, aktif } = req.body;
+    if (aktif) {
+      await db.run2("UPDATE periode SET aktif=0");
     }
     await db.run2(
-      "UPDATE periode SET nama=?, tahun=?, semester=?, status=? WHERE id=?",
-      [nama, tahun, semester, status, req.params.id]
+      "UPDATE periode SET nama=?, aktif=? WHERE id=?",
+      [nama.trim(), aktif ? 1 : 0, req.params.id]
     );
     res.json({ message: "Periode diupdate" });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.put("/:id/toggle", verifyToken, requireRole("admin"), async (req, res) => {
+  try {
+    const row = await db.get2("SELECT * FROM periode WHERE id=?", [req.params.id]);
+    if (!row) return res.status(404).json({ message: "Periode tidak ditemukan" });
+    if (row.aktif === 0) {
+      await db.run2("UPDATE periode SET aktif=0");
+      await db.run2("UPDATE periode SET aktif=1 WHERE id=?", [req.params.id]);
+    } else {
+      await db.run2("UPDATE periode SET aktif=0 WHERE id=?", [req.params.id]);
+    }
+    res.json({ message: "Status diupdate" });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
