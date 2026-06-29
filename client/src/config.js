@@ -50,10 +50,12 @@ const CONFIG = {
     auditor: [
       { key: "dashboard", label: "Dashboard",          icon: "📊", path: "/auditor/dashboard" },
       { key: "instrumen", label: "Instrumen Audit",    icon: "📋", path: "/auditor/instrumen" },
+      { key: "rtl", label: "Verifikasi RTL", icon: "✅", path: "/auditor/rtl" },
     ],
     auditee: [
       { key: "dashboard", label: "Dashboard",          icon: "📊", path: "/auditee/dashboard" },
       { key: "instrumen", label: "Evaluasi Diri",      icon: "📋", path: "/auditee/instrumen" },
+      { key: "rtl", label: "Tindak Lanjut", icon: "📝", path: "/auditee/rtl" },
     ],
   },
 
@@ -106,3 +108,4 @@ const CONFIG = {
 };
 
 export default CONFIG;
+

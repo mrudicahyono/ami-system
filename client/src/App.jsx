@@ -82,6 +82,8 @@ import AuditorDashboard from "./pages/auditor/Dashboard.jsx";
 import InstrumenAudit from "./pages/auditor/InstrumenAudit.jsx";
 import AuditeeDashboard from "./pages/auditee/Dashboard.jsx";
 import EvaluasiDiri from "./pages/auditee/EvaluasiDiri.jsx";
+import TindakLanjut from "./pages/auditee/TindakLanjut.jsx";
+import VerifikasiRTL from "./pages/auditor/VerifikasiRTL.jsx";
 
 // ─── App Router ───────────────────────────────────────────────────────────────
 export default function App() {
@@ -148,7 +150,11 @@ export default function App() {
               <InstrumenAudit />
             </ProtectedRoute>
           } />
-
+          <Route path="/auditor/rtl" element={
+            <ProtectedRoute allowedRoles={["auditor", "admin"]}>
+              <VerifikasiRTL />
+            </ProtectedRoute>
+          } />
           {/* Auditee routes */}
           <Route path="/auditee/dashboard" element={
             <ProtectedRoute allowedRoles={["auditee"]}>
@@ -160,6 +166,11 @@ export default function App() {
               <EvaluasiDiri />
             </ProtectedRoute>
           } />
+          <Route path="/auditee/rtl" element={
+          <ProtectedRoute allowedRoles={["auditee"]}>
+            <TindakLanjut />
+          </ProtectedRoute>
+        } />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
