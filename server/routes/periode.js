@@ -55,6 +55,9 @@ router.put("/:id/toggle", verifyToken, requireRole("admin"), async (req, res) =>
 
 router.delete("/:id", verifyToken, requireRole("admin"), async (req, res) => {
   try {
+    const used = await db.get2("SELECT COUNT(*) as total FROM instrumen WHERE periode_id=?", [req.params.id]);
+    if (used.total > 0)
+      return res.status(400).json({ message: `Tidak bisa dihapus — periode ini digunakan oleh ${used.total} instrumen` });
     await db.run2("DELETE FROM periode WHERE id=?", [req.params.id]);
     res.json({ message: "Periode dihapus" });
   } catch (err) { res.status(500).json({ message: err.message }); }
