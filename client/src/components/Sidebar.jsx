@@ -192,7 +192,7 @@ export default function Sidebar({ collapsed, onClose }) {
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <img
-              src="https://uit-lirboyo.ac.id/wp-content/uploads/2025/01/android-icon-72x72-1.png"
+              src="/logo-uit.png"
               alt="Logo UIT"
               style={{ width: 36, height: 36, borderRadius: 8, objectFit: "contain" }}
               onError={(e) => { e.target.style.display = "none"; }}
