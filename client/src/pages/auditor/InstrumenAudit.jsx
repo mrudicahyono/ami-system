@@ -19,8 +19,8 @@ export default function InstrumenAudit() {
   const [skorConfig, setSkor]     = useState([]);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState("");
-  const [modal, setModal]         = useState(null); // { instrumen }
-  const [form, setForm]           = useState({ skor: "", catatan: "", rekomendasi: "", tindak_lanjut: "" });
+  const [modal, setModal]         = useState(null);
+  const [form, setForm]           = useState({ skor: "", catatan: "", rekomendasi: "", perlu_rtl: false });
   const [saving, setSaving]       = useState(false);
   const [page, setPage]           = useState(1);
   const [pageSize, setPageSize]   = useState(CONFIG.defaultPageSize);
@@ -54,12 +54,11 @@ export default function InstrumenAudit() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const openAudit = useCallback((row) => {
-    const existing = row.hasil_audit;
     setForm({
-      skor:          existing?.skor != null ? String(existing.skor) : "",
-      catatan:       existing?.catatan       || "",
-      rekomendasi:   existing?.rekomendasi   || "",
-      tindak_lanjut: existing?.tindak_lanjut || "",
+      skor:      row.skor_auditor != null ? String(row.skor_auditor) : "",
+      catatan:   row.catatan_auditor || "",
+      rekomendasi: row.rekomendasi || "",
+      perlu_rtl: row.perlu_rtl === 1,
     });
     setModal({ instrumen: row });
     setError("");
@@ -70,43 +69,41 @@ export default function InstrumenAudit() {
     setSaving(true); setError("");
     try {
       await api.put(`/instrumen/${modal.instrumen.id}/audit`, {
-        skor:          Number(form.skor),
-        catatan:       form.catatan       || null,
-        rekomendasi:   form.rekomendasi   || null,
-        tindak_lanjut: form.tindak_lanjut || null,
+        skor:       Number(form.skor),
+        catatan:    form.catatan    || null,
+        rekomendasi: form.rekomendasi || null,
+        perlu_rtl:  form.perlu_rtl ? 1 : 0,
       });
-      setModal(null);
-      fetchData();
+      setModal(null); fetchData();
     } catch (err) {
       setError(err.response?.data?.message || "Gagal menyimpan hasil audit.");
     } finally { setSaving(false); }
   }, [form, modal, fetchData]);
 
   const paged = useMemo(() => data.slice((page - 1) * pageSize, page * pageSize), [data, page, pageSize]);
-
-  const textareaStyle = { width: "100%", padding: "9px 12px", border: `1px solid ${T.border}`, borderRadius: T.radiusSm, fontSize: 13, outline: "none", resize: "vertical", minHeight: 72, boxSizing: "border-box", fontFamily: T.fontFamily };
+  const textareaStyle = { width: "100%", padding: "9px 12px", border: `1px solid ${T.border}`, borderRadius: T.radiusSm, fontSize: 13, outline: "none", resize: "vertical", minHeight: 72, boxSizing: "border-box" };
 
   const columns = [
-    { key: "no",    label: "No",   width: 48, align: "center", render: (_, __, i) => (page - 1) * pageSize + i + 1 },
-    { key: "standar_nama", label: "Standar",      render: (_, r) => <span style={{ fontSize: 13 }}>{r.standar?.nama || "-"}</span> },
-    { key: "prodi_nama",   label: "Prodi",        render: (_, r) => <span style={{ fontWeight: 600, fontSize: 13, color: T.primary }}>{r.prodi?.kode || "-"}</span> },
-    { key: "auditee_nama", label: "Auditee",      render: (_, r) => <span style={{ fontSize: 13 }}>{r.auditee?.nama || "-"}</span> },
-    { key: "status",       label: "Status",       render: (_, r) => <StatusBadge status={r.status} /> },
-    { key: "skor",         label: "Skor",         align: "center", render: (_, r) => <SkorBadge skor={r.hasil_audit?.skor} skorConfig={skorConfig} /> },
-    { key: "aksi",         label: "Aksi",         align: "center", render: (_, r) => (
+    { key: "no", label: "No", width: 48, align: "center", render: (_, __, i) => (page - 1) * pageSize + i + 1 },
+    { key: "standar_nama",   label: "Standar",   render: (_, r) => <span style={{ fontSize: 12, color: T.textSecondary }}>{r.standar_nama || "-"}</span> },
+    { key: "indikator_kode", label: "Indikator", render: (_, r) => (
+      <div>
+        <span style={{ fontSize: 11, fontWeight: 700, color: T.primary }}>{r.indikator_kode}</span>
+        <div style={{ fontSize: 12, color: T.textPrimary, marginTop: 2 }}>{r.indikator_deskripsi}</div>
+      </div>
+    )},
+    { key: "prodi_nama",  label: "Prodi",   render: (_, r) => <span style={{ fontWeight: 600, fontSize: 12, color: T.primary }}>{r.prodi_kode || "-"}</span> },
+    { key: "auditee_nama",label: "Auditee", render: (_, r) => <span style={{ fontSize: 12 }}>{r.auditee_nama || "-"}</span> },
+    { key: "status",      label: "Status",  render: (_, r) => <StatusBadge status={r.status} /> },
+    { key: "skor",        label: "Skor",    align: "center", render: (_, r) => <SkorBadge skor={r.skor_auditor} skorConfig={skorConfig} /> },
+    { key: "aksi", label: "Aksi", align: "center", render: (_, r) => (
       <button
         onClick={() => openAudit(r)}
         disabled={r.status === "belum"}
-        style={{
-          padding: "4px 12px", border: "none", borderRadius: T.radiusSm,
-          background: r.status === "belum" ? T.bgPage : T.primaryLight,
-          color: r.status === "belum" ? T.textMuted : T.primary,
-          fontSize: 12, fontWeight: 500,
-          cursor: r.status === "belum" ? "not-allowed" : "pointer",
-        }}
+        style={{ padding: "4px 12px", border: "none", borderRadius: T.radiusSm, background: r.status === "belum" ? T.bgPage : T.primaryLight, color: r.status === "belum" ? T.textMuted : T.primary, fontSize: 12, fontWeight: 500, cursor: r.status === "belum" ? "not-allowed" : "pointer" }}
         title={r.status === "belum" ? "Tunggu auditee mengisi evaluasi diri" : ""}
       >
-        {r.hasil_audit ? "✏️ Edit Audit" : CONFIG.labels.audit}
+        {r.skor_auditor != null ? "✏️ Edit Audit" : CONFIG.labels.audit}
       </button>
     )},
   ];
@@ -134,11 +131,10 @@ export default function InstrumenAudit() {
       <DataTable columns={columns} data={paged} loading={loading} />
       <Pagination page={page} pageSize={pageSize} total={data.length} onPageChange={setPage} onPageSizeChange={setPageSize} />
 
-      {/* Modal form audit */}
       <Modal
         open={!!modal}
         onClose={() => { setModal(null); setError(""); }}
-        title={`Form Audit — ${modal?.instrumen?.standar?.nama || ""}`}
+        title="Form Audit"
         wide
         footer={
           <>
@@ -154,32 +150,27 @@ export default function InstrumenAudit() {
         {/* Info instrumen */}
         <div style={{ background: T.bgPage, borderRadius: T.radiusSm, padding: "12px 16px", marginBottom: 16, fontSize: 13 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-            <div><span style={{ color: T.textMuted }}>Standar: </span><strong>{modal?.instrumen?.standar?.nama}</strong></div>
-            <div><span style={{ color: T.textMuted }}>Prodi: </span><strong>{modal?.instrumen?.prodi?.kode} — {modal?.instrumen?.prodi?.nama}</strong></div>
-            <div><span style={{ color: T.textMuted }}>Auditee: </span><strong>{modal?.instrumen?.auditee?.nama || "-"}</strong></div>
+            <div><span style={{ color: T.textMuted }}>Standar: </span><strong>{modal?.instrumen?.standar_nama}</strong></div>
+            <div><span style={{ color: T.textMuted }}>Prodi: </span><strong>{modal?.instrumen?.prodi_kode} — {modal?.instrumen?.prodi_nama}</strong></div>
+            <div style={{ gridColumn: "1/-1" }}>
+              <span style={{ color: T.textMuted }}>Indikator: </span>
+              <strong style={{ color: T.primary }}>{modal?.instrumen?.indikator_kode}</strong>
+              <span style={{ marginLeft: 8 }}>{modal?.instrumen?.indikator_deskripsi}</span>
+            </div>
+            <div><span style={{ color: T.textMuted }}>Auditee: </span><strong>{modal?.instrumen?.auditee_nama || "-"}</strong></div>
             <div><span style={{ color: T.textMuted }}>Status: </span><StatusBadge status={modal?.instrumen?.status} /></div>
           </div>
         </div>
 
-        {/* Evaluasi diri (read-only) */}
-        {modal?.instrumen?.evaluasi_diri && (
+        {/* Evaluasi diri auditee (read-only) */}
+        {modal?.instrumen?.catatan_auditee && (
           <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: T.textSecondary, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-              📄 Evaluasi Diri Auditee
+            <div style={{ fontSize: 12, fontWeight: 700, color: T.textSecondary, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>📄 Evaluasi Diri Auditee</div>
+            <div style={{ padding: "12px 14px", background: T.primaryLight, borderRadius: T.radiusSm, fontSize: 13, borderLeft: `3px solid ${T.primary}`, lineHeight: 1.6 }}>
+              {modal.instrumen.catatan_auditee}
             </div>
-            <div style={{
-              padding: "12px 14px", background: T.primaryLight,
-              borderRadius: T.radiusSm, fontSize: 13, color: T.textPrimary,
-              borderLeft: `3px solid ${T.primary}`, lineHeight: 1.6,
-            }}>
-              {modal.instrumen.evaluasi_diri.deskripsi || "(Tidak ada deskripsi)"}
-            </div>
-            {modal.instrumen.evaluasi_diri.file_path && (
-              <a
-                href={modal.instrumen.evaluasi_diri.file_path}
-                target="_blank" rel="noopener noreferrer"
-                style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 8, fontSize: 12, color: T.primary }}
-              >
+            {modal.instrumen.file_path && (
+              <a href={modal.instrumen.file_path} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 8, fontSize: 12, color: T.primary }}>
                 📎 Lihat Dokumen PDF
               </a>
             )}
@@ -188,25 +179,13 @@ export default function InstrumenAudit() {
 
         {/* Pilih skor */}
         <div style={{ marginBottom: 16 }}>
-          <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: T.textSecondary, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-            Skor Audit *
-          </label>
+          <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: T.textSecondary, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>Skor Audit *</label>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {skorConfig.map((s) => {
               const selected = String(form.skor) === String(s.nilai);
               return (
-                <button
-                  key={s.nilai}
-                  onClick={() => setForm((p) => ({ ...p, skor: String(s.nilai) }))}
-                  style={{
-                    padding: "8px 16px", border: `2px solid ${selected ? s.warna : T.border}`,
-                    borderRadius: T.radiusSm, cursor: "pointer",
-                    background: selected ? s.bg_warna : T.bgCard,
-                    color: selected ? s.warna : T.textSecondary,
-                    fontSize: 13, fontWeight: selected ? 700 : 400,
-                    transition: "all 0.15s",
-                  }}
-                >
+                <button key={s.nilai} onClick={() => setForm((p) => ({ ...p, skor: String(s.nilai) }))}
+                  style={{ padding: "8px 16px", border: `2px solid ${selected ? s.warna : T.border}`, borderRadius: T.radiusSm, cursor: "pointer", background: selected ? s.bg_warna : T.bgCard, color: selected ? s.warna : T.textSecondary, fontSize: 13, fontWeight: selected ? 700 : 400, transition: "all 0.15s" }}>
                   {s.nilai} — {s.label}
                 </button>
               );
@@ -214,22 +193,24 @@ export default function InstrumenAudit() {
           </div>
         </div>
 
-        {/* Catatan, rekomendasi, tindak lanjut */}
+        {/* Catatan & rekomendasi */}
         {[
-          { key: "catatan",       label: CONFIG.labels.catatan,       placeholder: "Tuliskan catatan hasil audit..." },
-          { key: "rekomendasi",   label: CONFIG.labels.rekomendasi,   placeholder: "Tuliskan rekomendasi perbaikan..." },
-          { key: "tindak_lanjut", label: CONFIG.labels.tindakLanjut,  placeholder: "Tuliskan rencana tindak lanjut..." },
+          { key: "catatan",     label: CONFIG.labels.catatan,     placeholder: "Tuliskan catatan hasil audit..." },
+          { key: "rekomendasi", label: CONFIG.labels.rekomendasi, placeholder: "Tuliskan rekomendasi perbaikan..." },
         ].map(({ key, label, placeholder }) => (
           <div key={key} style={{ marginBottom: 14 }}>
             <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: T.textSecondary, marginBottom: 6 }}>{label}</label>
-            <textarea
-              value={form[key]}
-              onChange={(e) => setForm((p) => ({ ...p, [key]: e.target.value }))}
-              placeholder={placeholder}
-              style={textareaStyle}
-            />
+            <textarea value={form[key]} onChange={(e) => setForm((p) => ({ ...p, [key]: e.target.value }))} placeholder={placeholder} style={textareaStyle} />
           </div>
         ))}
+
+        {/* Perlu RTL */}
+        <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", padding: "10px 14px", background: form.perlu_rtl ? T.warningLight : T.bgPage, borderRadius: T.radiusSm, border: `1px solid ${form.perlu_rtl ? T.warning : T.border}` }}>
+          <input type="checkbox" checked={form.perlu_rtl} onChange={(e) => setForm((p) => ({ ...p, perlu_rtl: e.target.checked }))} style={{ width: 16, height: 16 }} />
+          <span style={{ fontSize: 13, fontWeight: 600, color: form.perlu_rtl ? T.warning : T.textSecondary }}>
+            ⚠️ Indikator ini memerlukan Tindak Lanjut (RTL)
+          </span>
+        </label>
       </Modal>
     </Layout>
   );

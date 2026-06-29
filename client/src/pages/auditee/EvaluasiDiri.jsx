@@ -18,7 +18,7 @@ export default function EvaluasiDiri() {
   const [skorConfig, setSkor]     = useState([]);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState("");
-  const [modal, setModal]         = useState(null); // { instrumen, mode: 'edit' | 'view' }
+  const [modal, setModal]         = useState(null);
   const [form, setForm]           = useState({ deskripsi: "", file_path: "" });
   const [saving, setSaving]       = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -53,10 +53,9 @@ export default function EvaluasiDiri() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const openEvaluasi = useCallback((row) => {
-    const existing = row.evaluasi_diri;
     setForm({
-      deskripsi: existing?.deskripsi || "",
-      file_path: existing?.file_path || "",
+      deskripsi: row.catatan_auditee || "",
+      file_path: row.file_path || "",
     });
     setModal({ instrumen: row, mode: row.status === "selesai" ? "view" : "edit" });
     setError("");
@@ -66,15 +65,12 @@ export default function EvaluasiDiri() {
     if (!file) return;
     if (file.type !== "application/pdf") { setError("Hanya file PDF yang diizinkan."); return; }
     if (file.size > 10 * 1024 * 1024)   { setError("Ukuran file maksimal 10MB."); return; }
-
     setUploading(true); setError("");
     try {
       const fd = new FormData();
       fd.append("file", file);
-      const res = await api.post("/upload", fd, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      setForm((p) => ({ ...p, file_path: res.data.data.filePath }));
+      const res = await api.post("/upload", fd, { headers: { "Content-Type": "multipart/form-data" } });
+      setForm((p) => ({ ...p, file_path: res.data.filePath || res.data.data?.filePath }));
     } catch (err) {
       setError(err.response?.data?.message || "Gagal mengupload file.");
     } finally { setUploading(false); }
@@ -88,25 +84,29 @@ export default function EvaluasiDiri() {
         deskripsi: form.deskripsi.trim(),
         file_path: form.file_path || null,
       });
-      setModal(null);
-      fetchData();
+      setModal(null); fetchData();
     } catch (err) {
       setError(err.response?.data?.message || "Gagal menyimpan evaluasi.");
     } finally { setSaving(false); }
   }, [form, modal, fetchData]);
 
   const paged = useMemo(() => data.slice((page - 1) * pageSize, page * pageSize), [data, page, pageSize]);
-
   const isViewMode = modal?.mode === "view";
-  const textareaStyle = { width: "100%", padding: "9px 12px", border: `1px solid ${T.border}`, borderRadius: T.radiusSm, fontSize: 13, outline: "none", resize: "vertical", minHeight: 100, boxSizing: "border-box", fontFamily: T.fontFamily };
+  const textareaStyle = { width: "100%", padding: "9px 12px", border: `1px solid ${T.border}`, borderRadius: T.radiusSm, fontSize: 13, outline: "none", resize: "vertical", minHeight: 100, boxSizing: "border-box" };
 
   const columns = [
-    { key: "no",    label: "No", width: 48, align: "center", render: (_, __, i) => (page - 1) * pageSize + i + 1 },
-    { key: "standar_nama", label: "Standar",  render: (_, r) => <span style={{ fontSize: 13 }}>{r.standar?.nama || "-"}</span> },
-    { key: "prodi_nama",   label: "Prodi",    render: (_, r) => <span style={{ fontWeight: 600, fontSize: 13, color: T.primary }}>{r.prodi?.kode || "-"}</span> },
-    { key: "status",       label: "Status",   render: (_, r) => <StatusBadge status={r.status} /> },
-    { key: "skor",         label: "Skor Audit", align: "center", render: (_, r) => <SkorBadge skor={r.hasil_audit?.skor} skorConfig={skorConfig} /> },
-    { key: "aksi",         label: "Aksi",     align: "center", render: (_, r) => (
+    { key: "no", label: "No", width: 48, align: "center", render: (_, __, i) => (page - 1) * pageSize + i + 1 },
+    { key: "standar_nama",      label: "Standar",   render: (_, r) => <span style={{ fontSize: 12, color: T.textSecondary }}>{r.standar_nama || "-"}</span> },
+    { key: "indikator_kode",    label: "Indikator", render: (_, r) => (
+      <div>
+        <span style={{ fontSize: 11, fontWeight: 700, color: T.primary }}>{r.indikator_kode}</span>
+        <div style={{ fontSize: 12, color: T.textPrimary, marginTop: 2 }}>{r.indikator_deskripsi}</div>
+      </div>
+    )},
+    { key: "prodi_nama",  label: "Prodi",      render: (_, r) => <span style={{ fontWeight: 600, fontSize: 12, color: T.primary }}>{r.prodi_kode || "-"}</span> },
+    { key: "status",      label: "Status",     render: (_, r) => <StatusBadge status={r.status} /> },
+    { key: "skor",        label: "Skor Audit", align: "center", render: (_, r) => <SkorBadge skor={r.skor_auditor} skorConfig={skorConfig} /> },
+    { key: "aksi", label: "Aksi", align: "center", render: (_, r) => (
       <button
         onClick={() => openEvaluasi(r)}
         style={{
@@ -116,7 +116,7 @@ export default function EvaluasiDiri() {
           fontSize: 12, fontWeight: 500, cursor: "pointer",
         }}
       >
-        {r.status === "selesai" ? "📋 Lihat Detail" : (r.evaluasi_diri ? "✏️ Edit" : CONFIG.labels.evaluasi)}
+        {r.status === "selesai" ? "📋 Lihat" : (r.catatan_auditee ? "✏️ Edit" : CONFIG.labels.evaluasi)}
       </button>
     )},
   ];
@@ -128,7 +128,7 @@ export default function EvaluasiDiri() {
       <FilterBar
         filters={[
           { key: "standar_id", type: "select", label: "Standar", options: standarList.map((s) => ({ value: s.id, label: s.nama })) },
-          { key: "status",     type: "select", label: "Status",  options: [
+          { key: "status", type: "select", label: "Status", options: [
             { value: "belum",   label: "Belum Diisi" },
             { value: "diisi",   label: "Sudah Diisi" },
             { value: "proses",  label: "Proses Audit" },
@@ -143,16 +143,13 @@ export default function EvaluasiDiri() {
       <DataTable columns={columns} data={paged} loading={loading} />
       <Pagination page={page} pageSize={pageSize} total={data.length} onPageChange={setPage} onPageSizeChange={setPageSize} />
 
-      {/* Modal evaluasi */}
       <Modal
         open={!!modal}
         onClose={() => { setModal(null); setError(""); }}
-        title={isViewMode ? `Detail Audit — ${modal?.instrumen?.standar?.nama}` : `Isi Evaluasi Diri — ${modal?.instrumen?.standar?.nama}`}
+        title={isViewMode ? "Detail Audit" : "Isi Evaluasi Diri"}
         wide
         footer={isViewMode ? (
-          <button onClick={() => { setModal(null); }} style={{ padding: "8px 18px", border: `1px solid ${T.border}`, borderRadius: T.radiusSm, background: T.bgCard, fontSize: 13, cursor: "pointer" }}>
-            Tutup
-          </button>
+          <button onClick={() => setModal(null)} style={{ padding: "8px 18px", border: `1px solid ${T.border}`, borderRadius: T.radiusSm, background: T.bgCard, fontSize: 13, cursor: "pointer" }}>Tutup</button>
         ) : (
           <>
             <button onClick={() => { setModal(null); setError(""); }} style={{ padding: "8px 18px", border: `1px solid ${T.border}`, borderRadius: T.radiusSm, background: T.bgCard, fontSize: 13, cursor: "pointer" }}>{CONFIG.labels.batal}</button>
@@ -167,9 +164,13 @@ export default function EvaluasiDiri() {
         {/* Info instrumen */}
         <div style={{ background: T.bgPage, borderRadius: T.radiusSm, padding: "12px 16px", marginBottom: 16, fontSize: 13 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-            <div><span style={{ color: T.textMuted }}>Standar: </span><strong>{modal?.instrumen?.standar?.nama}</strong></div>
-            <div><span style={{ color: T.textMuted }}>Prodi: </span><strong>{modal?.instrumen?.prodi?.kode} — {modal?.instrumen?.prodi?.nama}</strong></div>
-            <div><span style={{ color: T.textMuted }}>Periode: </span><strong>{modal?.instrumen?.periode?.nama}</strong></div>
+            <div><span style={{ color: T.textMuted }}>Standar: </span><strong>{modal?.instrumen?.standar_nama}</strong></div>
+            <div><span style={{ color: T.textMuted }}>Prodi: </span><strong>{modal?.instrumen?.prodi_kode} — {modal?.instrumen?.prodi_nama}</strong></div>
+            <div style={{ gridColumn: "1/-1" }}>
+              <span style={{ color: T.textMuted }}>Indikator: </span>
+              <strong style={{ color: T.primary }}>{modal?.instrumen?.indikator_kode}</strong>
+              <span style={{ marginLeft: 8 }}>{modal?.instrumen?.indikator_deskripsi}</span>
+            </div>
             <div><span style={{ color: T.textMuted }}>Status: </span><StatusBadge status={modal?.instrumen?.status} /></div>
           </div>
         </div>
@@ -180,16 +181,11 @@ export default function EvaluasiDiri() {
             Deskripsi Evaluasi Diri {!isViewMode && "*"}
           </label>
           {isViewMode ? (
-            <div style={{ padding: "12px 14px", background: T.bgPage, borderRadius: T.radiusSm, fontSize: 13, color: T.textPrimary, lineHeight: 1.7 }}>
-              {modal?.instrumen?.evaluasi_diri?.deskripsi || "(Tidak ada deskripsi)"}
+            <div style={{ padding: "12px 14px", background: T.bgPage, borderRadius: T.radiusSm, fontSize: 13, lineHeight: 1.7 }}>
+              {modal?.instrumen?.catatan_auditee || "(Tidak ada deskripsi)"}
             </div>
           ) : (
-            <textarea
-              value={form.deskripsi}
-              onChange={(e) => setForm((p) => ({ ...p, deskripsi: e.target.value }))}
-              placeholder="Deskripsikan kondisi dan pencapaian standar ini..."
-              style={{ ...textareaStyle, minHeight: 120 }}
-            />
+            <textarea value={form.deskripsi} onChange={(e) => setForm((p) => ({ ...p, deskripsi: e.target.value }))} placeholder="Deskripsikan kondisi dan pencapaian indikator ini..." style={{ ...textareaStyle, minHeight: 120 }} />
           )}
         </div>
 
@@ -200,32 +196,16 @@ export default function EvaluasiDiri() {
           </label>
           {form.file_path ? (
             <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: T.successLight, borderRadius: T.radiusSm }}>
-              <span style={{ fontSize: 18 }}>📎</span>
-              <a href={form.file_path} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: T.success, fontWeight: 500 }}>
-                Lihat Dokumen PDF
-              </a>
+              <span>📎</span>
+              <a href={form.file_path} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: T.success, fontWeight: 500 }}>Lihat Dokumen PDF</a>
               {!isViewMode && (
-                <button
-                  onClick={() => setForm((p) => ({ ...p, file_path: "" }))}
-                  style={{ marginLeft: "auto", border: "none", background: "none", color: T.danger, cursor: "pointer", fontSize: 12 }}
-                >
-                  ✕ Hapus
-                </button>
+                <button onClick={() => setForm((p) => ({ ...p, file_path: "" }))} style={{ marginLeft: "auto", border: "none", background: "none", color: T.danger, cursor: "pointer", fontSize: 12 }}>✕ Hapus</button>
               )}
             </div>
           ) : !isViewMode ? (
             <div>
               <input ref={fileRef} type="file" accept=".pdf" style={{ display: "none" }} onChange={(e) => handleUpload(e.target.files[0])} />
-              <button
-                onClick={() => fileRef.current?.click()}
-                disabled={uploading}
-                style={{
-                  padding: "9px 16px", border: `1.5px dashed ${T.border}`,
-                  borderRadius: T.radiusSm, background: T.bgPage,
-                  color: T.textSecondary, fontSize: 13, cursor: "pointer",
-                  display: "flex", alignItems: "center", gap: 8,
-                }}
-              >
+              <button onClick={() => fileRef.current?.click()} disabled={uploading} style={{ padding: "9px 16px", border: `1.5px dashed ${T.border}`, borderRadius: T.radiusSm, background: T.bgPage, color: T.textSecondary, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
                 <span>{uploading ? "⏳" : "📤"}</span>
                 {uploading ? "Mengupload..." : "Pilih File PDF (max 10MB)"}
               </button>
@@ -235,29 +215,25 @@ export default function EvaluasiDiri() {
           )}
         </div>
 
-        {/* Hasil audit (read-only, jika ada) */}
-        {modal?.instrumen?.hasil_audit && (
-          <div style={{ marginTop: 8 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: T.textSecondary, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px", display: "flex", alignItems: "center", gap: 6 }}>
+        {/* Hasil audit (read-only) */}
+        {modal?.instrumen?.skor_auditor != null && (
+          <div style={{ marginTop: 8, padding: "12px 16px", background: T.bgPage, borderRadius: T.radiusSm }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: T.textSecondary, marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.5px", display: "flex", alignItems: "center", gap: 8 }}>
               📊 Hasil Audit
-              <SkorBadge skor={modal.instrumen.hasil_audit.skor} skorConfig={skorConfig} />
+              <SkorBadge skor={modal.instrumen.skor_auditor} skorConfig={skorConfig} />
             </div>
-            {[
-              { label: "Catatan Auditor",  val: modal.instrumen.hasil_audit.catatan },
-              { label: "Rekomendasi",      val: modal.instrumen.hasil_audit.rekomendasi },
-              { label: "Tindak Lanjut",    val: modal.instrumen.hasil_audit.tindak_lanjut },
-            ].map(({ label, val }) => val ? (
-              <div key={label} style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: T.textSecondary, marginBottom: 4 }}>{label}</div>
-                <div style={{ padding: "10px 14px", background: T.bgPage, borderRadius: T.radiusSm, fontSize: 13, color: T.textPrimary, lineHeight: 1.6 }}>
-                  {val}
-                </div>
+            {modal?.instrumen?.catatan_auditor && (
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: T.textSecondary, marginBottom: 4 }}>Catatan Auditor</div>
+                <div style={{ padding: "10px 14px", background: T.bgCard, borderRadius: T.radiusSm, fontSize: 13, lineHeight: 1.6 }}>{modal.instrumen.catatan_auditor}</div>
               </div>
-            ) : null)}
-            <div style={{ fontSize: 12, color: T.textMuted, marginTop: 8 }}>
-              Diaudit oleh: <strong>{modal.instrumen.hasil_audit.auditor_nama || "-"}</strong>
-              {modal.instrumen.hasil_audit.updated_at && ` · ${new Date(modal.instrumen.hasil_audit.updated_at).toLocaleDateString("id-ID")}`}
-            </div>
+            )}
+            {modal?.instrumen?.rekomendasi && (
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: T.textSecondary, marginBottom: 4 }}>Rekomendasi</div>
+                <div style={{ padding: "10px 14px", background: T.bgCard, borderRadius: T.radiusSm, fontSize: 13, lineHeight: 1.6 }}>{modal.instrumen.rekomendasi}</div>
+              </div>
+            )}
           </div>
         )}
       </Modal>
