@@ -7,33 +7,32 @@ import FilterBar from "../../components/FilterBar.jsx";
 import Pagination from "../../components/Pagination.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
 import SkorBadge from "../../components/SkorBadge.jsx";
-import ErrorAlert from "../../components/ErrorAlert.jsx";
-import AddButton from "../../components/AddButton.jsx";
 import CONFIG from "../../config.js";
 import api from "../../api.js";
 
 const T = CONFIG.theme;
 
 const emptyForm = {
-  standar_id: "", prodi_id: "", periode_id: "",
+  standar_id: "", indikator_id: "", prodi_id: "", periode_id: "",
   auditor1_id: "", auditor2_id: "", auditee_id: "",
 };
 
 export default function KelolaInstrumen() {
-  const [data, setData]           = useState([]);
-  const [standarList, setStandar] = useState([]);
-  const [prodiList, setProdi]     = useState([]);
-  const [periodeList, setPeriode] = useState([]);
-  const [userList, setUsers]      = useState([]);
-  const [skorConfig, setSkor]     = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [error, setError]         = useState("");
-  const [modal, setModal]         = useState(null);
-  const [form, setForm]           = useState(emptyForm);
-  const [saving, setSaving]       = useState(false);
-  const [page, setPage]           = useState(1);
-  const [pageSize, setPageSize]   = useState(CONFIG.defaultPageSize);
-  const [filters, setFilters]     = useState({ standar_id: "", prodi_id: "", status: "" });
+  const [data, setData]             = useState([]);
+  const [standarList, setStandar]   = useState([]);
+  const [indikatorList, setIndikator] = useState([]);
+  const [prodiList, setProdi]       = useState([]);
+  const [periodeList, setPeriode]   = useState([]);
+  const [userList, setUsers]        = useState([]);
+  const [skorConfig, setSkor]       = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [error, setError]           = useState("");
+  const [modal, setModal]           = useState(null);
+  const [form, setForm]             = useState(emptyForm);
+  const [saving, setSaving]         = useState(false);
+  const [page, setPage]             = useState(1);
+  const [pageSize, setPageSize]     = useState(CONFIG.defaultPageSize);
+  const [filters, setFilters]       = useState({ standar_id: "", prodi_id: "", status: "" });
 
   const fetchRefs = useCallback(async () => {
     try {
@@ -53,117 +52,126 @@ export default function KelolaInstrumen() {
   }, []);
 
   const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError("");
+    setLoading(true); setError("");
     try {
       const params = {};
       if (filters.standar_id) params.standar_id = filters.standar_id;
       if (filters.prodi_id)   params.prodi_id   = filters.prodi_id;
       if (filters.status)     params.status     = filters.status;
       const res = await api.get("/instrumen", { params });
-      setData(res.data);
+      setData(res.data || []);
       setPage(1);
     } catch (err) {
       setError(err.response?.data?.message || "Gagal memuat data.");
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   }, [filters]);
 
   useEffect(() => { fetchRefs(); }, [fetchRefs]);
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // Fetch indikator saat standar_id berubah di form
+  const fetchIndikatorByStandar = useCallback(async (standar_id) => {
+    if (!standar_id) { setIndikator([]); return; }
+    try {
+      const res = await api.get("/indikator", { params: { standar_id } });
+      setIndikator(res.data || []);
+    } catch {}
+  }, []);
+
   const openAdd = useCallback(() => {
+    setError("");
     const periodeAktif = periodeList.find((p) => p.aktif === 1);
     setForm({ ...emptyForm, periode_id: periodeAktif?.id || "" });
+    setIndikator([]);
     setModal({ mode: "add" });
   }, [periodeList]);
 
-  const openEdit = useCallback((row) => {
+  const openEdit = useCallback(async (row) => {
+    setError("");
     setForm({
-      standar_id:  row.standar_id  || "",
-      prodi_id:    row.prodi_id    || "",
-      periode_id:  row.periode_id  || "",
-      auditor1_id: row.auditor1_id || "",
-      auditor2_id: row.auditor2_id || "",
-      auditee_id:  row.auditee_id  || "",
+      standar_id:   row.standar_id   || "",
+      indikator_id: row.indikator_id || "",
+      prodi_id:     row.prodi_id     || "",
+      periode_id:   row.periode_id   || "",
+      auditor1_id:  row.auditor1_id  || "",
+      auditor2_id:  row.auditor2_id  || "",
+      auditee_id:   row.auditee_id   || "",
     });
+    // Load indikator untuk standar yang dipilih
+    if (row.standar_id) {
+      try {
+        const res = await api.get("/indikator", { params: { standar_id: row.standar_id } });
+        setIndikator(res.data || []);
+      } catch {}
+    }
     setModal({ mode: "edit", data: row });
   }, []);
 
+  const handleStandarChange = (e) => {
+    const val = e.target.value;
+    setForm((p) => ({ ...p, standar_id: val, indikator_id: "" }));
+    fetchIndikatorByStandar(val);
+  };
+
   const handleSave = useCallback(async () => {
-    if (!form.standar_id || !form.prodi_id || !form.periode_id) {
-      setError("Standar, program studi, dan periode wajib dipilih.");
+    if (!form.indikator_id || !form.prodi_id || !form.periode_id) {
+      setError("Indikator, program studi, dan periode wajib dipilih.");
       return;
     }
-    setSaving(true);
-    setError("");
+    setSaving(true); setError("");
     try {
       const payload = {
-        standar_id:  Number(form.standar_id),
-        prodi_id:    Number(form.prodi_id),
-        periode_id:  Number(form.periode_id),
-        auditor1_id: form.auditor1_id ? Number(form.auditor1_id) : null,
-        auditor2_id: form.auditor2_id ? Number(form.auditor2_id) : null,
-        auditee_id:  form.auditee_id  ? Number(form.auditee_id)  : null,
+        indikator_id: Number(form.indikator_id),
+        prodi_id:     Number(form.prodi_id),
+        periode_id:   Number(form.periode_id),
+        auditor1_id:  form.auditor1_id ? Number(form.auditor1_id) : null,
+        auditor2_id:  form.auditor2_id ? Number(form.auditor2_id) : null,
+        auditee_id:   form.auditee_id  ? Number(form.auditee_id)  : null,
       };
       if (modal.mode === "add") {
         await api.post("/instrumen", payload);
       } else {
         await api.put(`/instrumen/${modal.data.id}`, payload);
       }
-      setModal(null);
-      fetchData();
+      setModal(null); fetchData();
     } catch (err) {
       setError(err.response?.data?.message || "Gagal menyimpan data.");
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   }, [form, modal, fetchData]);
 
   const handleDelete = useCallback(async (row) => {
     if (!window.confirm(CONFIG.labels.confirmHapus)) return;
-    try {
-      await api.delete(`/instrumen/${row.id}`);
-      fetchData();
-    } catch (err) {
-      setError(err.response?.data?.message || "Gagal menghapus.");
-    }
+    try { await api.delete(`/instrumen/${row.id}`); fetchData(); }
+    catch (err) { setError(err.response?.data?.message || "Gagal menghapus."); }
   }, [fetchData]);
 
-  const handleFilterChange = useCallback((key, val) => {
-    setFilters((p) => ({ ...p, [key]: val }));
-  }, []);
-
-  const paginatedData = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    return data.slice(start, start + pageSize);
-  }, [data, page, pageSize]);
-
+  const paginatedData = useMemo(() => data.slice((page - 1) * pageSize, page * pageSize), [data, page, pageSize]);
   const auditors = useMemo(() => userList.filter((u) => u.role === "auditor"), [userList]);
   const auditees = useMemo(() => userList.filter((u) => u.role === "auditee"), [userList]);
 
-  const btnStyle = (color, bg) => ({
-    padding: "4px 10px", border: "none", borderRadius: T.radiusSm,
-    background: bg, color, fontSize: 12, fontWeight: 500,
-    cursor: "pointer", marginRight: 4,
-  });
+  const btnStyle = (color, bg) => ({ padding: "4px 10px", border: "none", borderRadius: T.radiusSm, background: bg, color, fontSize: 12, fontWeight: 500, cursor: "pointer", marginRight: 4 });
+  const inputStyle = { width: "100%", padding: "9px 12px", border: `1px solid ${T.border}`, borderRadius: T.radiusSm, fontSize: 13, color: T.textPrimary, background: T.bgCard, outline: "none", boxSizing: "border-box" };
 
   const columns = [
-    { key: "no",          label: "No",       width: 48, align: "center", render: (_, __, i) => (page - 1) * pageSize + i + 1 },
-    { key: "standar_nama",label: "Standar",  render: (_, r) => <span style={{ fontSize: 13 }}>{r.standar_nama || "-"}</span> },
-    { key: "prodi_nama",  label: "Prodi",    render: (_, r) => (
+    { key: "no", label: "No", width: 48, align: "center", render: (_, __, i) => (page - 1) * pageSize + i + 1 },
+    { key: "standar_nama", label: "Standar", render: (_, r) => <span style={{ fontSize: 12, color: T.textSecondary }}>{r.standar_nama || "-"}</span> },
+    { key: "indikator", label: "Indikator", render: (_, r) => (
+      <div>
+        <span style={{ fontSize: 11, fontWeight: 700, color: T.primary, marginRight: 6 }}>{r.indikator_kode}</span>
+        <span style={{ fontSize: 12, color: T.textPrimary }}>{r.indikator_deskripsi}</span>
+      </div>
+    )},
+    { key: "prodi_nama", label: "Prodi", render: (_, r) => (
       <span>
         <span style={{ fontWeight: 600, fontSize: 12, color: T.primary }}>{r.prodi_kode}</span>
         <span style={{ fontSize: 12, color: T.textSecondary, marginLeft: 4 }}>{r.prodi_nama}</span>
       </span>
     )},
-    { key: "auditor1",    label: "Auditor 1",render: (_, r) => <span style={{ fontSize: 13 }}>{r.auditor1_nama || "-"}</span> },
-    { key: "auditor2",    label: "Auditor 2",render: (_, r) => <span style={{ fontSize: 13 }}>{r.auditor2_nama || "-"}</span> },
-    { key: "auditee",     label: "Auditee",  render: (_, r) => <span style={{ fontSize: 13 }}>{r.auditee_nama || "-"}</span> },
-    { key: "status",      label: "Status",   render: (_, r) => <StatusBadge status={r.status} /> },
-    { key: "skor",        label: "Skor",     align: "center", render: (_, r) => <SkorBadge skor={r.hasil_audit?.skor} skorConfig={skorConfig} /> },
-    { key: "aksi",        label: "Aksi",     align: "center", render: (_, r) => (
+    { key: "auditor1", label: "Auditor 1", render: (_, r) => <span style={{ fontSize: 12 }}>{r.auditor1_nama || "-"}</span> },
+    { key: "auditee",  label: "Auditee",   render: (_, r) => <span style={{ fontSize: 12 }}>{r.auditee_nama || "-"}</span> },
+    { key: "status",   label: "Status",    render: (_, r) => <StatusBadge status={r.status} /> },
+    { key: "skor",     label: "Skor",      align: "center", render: (_, r) => <SkorBadge skor={r.skor_auditor} skorConfig={skorConfig} /> },
+    { key: "aksi",     label: "Aksi",      align: "center", render: (_, r) => (
       <div style={{ display: "flex", justifyContent: "center" }}>
         <button onClick={() => openEdit(r)} style={btnStyle(T.primary, T.primaryLight)}>{CONFIG.labels.edit}</button>
         <button onClick={() => handleDelete(r)} style={btnStyle(T.danger, T.dangerLight)}>{CONFIG.labels.hapus}</button>
@@ -171,16 +179,9 @@ export default function KelolaInstrumen() {
     )},
   ];
 
-  const inputStyle = {
-    width: "100%", padding: "9px 12px",
-    border: `1px solid ${T.border}`, borderRadius: T.radiusSm,
-    fontSize: 13, color: T.textPrimary,
-    background: T.bgCard, outline: "none", boxSizing: "border-box",
-  };
-
   return (
     <Layout title="Kelola Instrumen Audit">
-      <ErrorAlert message={error} />
+      {error && <div style={{ padding: "10px 14px", background: T.dangerLight, color: T.danger, borderRadius: T.radiusSm, marginBottom: 12 }}>⚠️ {error}</div>}
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
         <FilterBar
@@ -195,18 +196,16 @@ export default function KelolaInstrumen() {
             ]},
           ]}
           values={filters}
-          onChange={handleFilterChange}
+          onChange={(k, v) => setFilters((p) => ({ ...p, [k]: v }))}
           onReset={() => setFilters({ standar_id: "", prodi_id: "", status: "" })}
         />
-        <AddButton onClick={openAdd} />
+        <button onClick={openAdd} style={{ padding: "8px 16px", background: T.primary, color: "#fff", border: "none", borderRadius: T.radiusSm, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+          ＋ {CONFIG.labels.tambah}
+        </button>
       </div>
 
       <DataTable columns={columns} data={paginatedData} loading={loading} />
-
-      <Pagination
-        page={page} pageSize={pageSize} total={data.length}
-        onPageChange={setPage} onPageSizeChange={setPageSize}
-      />
+      <Pagination page={page} pageSize={pageSize} total={data.length} onPageChange={setPage} onPageSizeChange={setPageSize} />
 
       <Modal
         open={!!modal}
@@ -223,14 +222,24 @@ export default function KelolaInstrumen() {
           </>
         }
       >
-        <ErrorAlert message={error} />
+        {error && <div style={{ padding: "8px 12px", background: T.dangerLight, color: T.danger, borderRadius: T.radiusSm, marginBottom: 12, fontSize: 13 }}>⚠️ {error}</div>}
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+          {/* Standar — trigger load indikator */}
           <div style={{ gridColumn: "1/-1" }}>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: T.textSecondary, marginBottom: 6 }}>Standar *</label>
-            <select value={form.standar_id} onChange={(e) => setForm((p) => ({ ...p, standar_id: e.target.value }))} style={inputStyle}>
-              <option value="">Pilih Standar</option>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: T.textSecondary, marginBottom: 6 }}>Standar</label>
+            <select value={form.standar_id} onChange={handleStandarChange} style={inputStyle}>
+              <option value="">Pilih Standar dulu</option>
               {standarList.map((s) => <option key={s.id} value={s.id}>{s.nama}</option>)}
+            </select>
+          </div>
+
+          {/* Indikator */}
+          <div style={{ gridColumn: "1/-1" }}>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: T.textSecondary, marginBottom: 6 }}>Indikator *</label>
+            <select value={form.indikator_id} onChange={(e) => setForm((p) => ({ ...p, indikator_id: e.target.value }))} style={inputStyle} disabled={!form.standar_id}>
+              <option value="">{form.standar_id ? "Pilih Indikator" : "Pilih Standar dulu"}</option>
+              {indikatorList.map((ind) => <option key={ind.id} value={ind.id}>{ind.kode} — {ind.deskripsi}</option>)}
             </select>
           </div>
 
