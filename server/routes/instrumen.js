@@ -50,7 +50,7 @@ router.post("/", verifyToken, requireRole("admin"), async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// PUT update instrumen
+// PUT update instrumen (admin)
 router.put("/:id", verifyToken, requireRole("admin"), async (req, res) => {
   try {
     const { standar_id, prodi_id, periode_id, auditor1_id, auditor2_id, auditee_id } = req.body;
@@ -62,61 +62,67 @@ router.put("/:id", verifyToken, requireRole("admin"), async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+// PUT evaluasi diri auditee
+router.put("/:id/evaluasi", verifyToken, requireRole("auditee"), async (req, res) => {
+  try {
+    const { deskripsi, file_path } = req.body;
+    if (!deskripsi || !deskripsi.trim())
+      return res.status(400).json({ message: "Deskripsi evaluasi wajib diisi" });
+    const instrumen = await db.get2("SELECT * FROM instrumen WHERE id=?", [req.params.id]);
+    if (!instrumen) return res.status(404).json({ message: "Instrumen tidak ditemukan" });
+    const exists = await db.get2(
+      "SELECT id FROM evaluasi_auditee WHERE instrumen_id=? AND user_id=?",
+      [req.params.id, req.user.id]
+    );
+    if (exists) {
+      await db.run2(
+        "UPDATE evaluasi_auditee SET skor=?, catatan=?, file_path=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+        [null, deskripsi.trim(), file_path || null, exists.id]
+      );
+    } else {
+      await db.run2(
+        "INSERT INTO evaluasi_auditee (instrumen_id, periode_id, prodi_id, user_id, skor, catatan, file_path) VALUES (?,?,?,?,?,?,?)",
+        [req.params.id, instrumen.periode_id, instrumen.prodi_id, req.user.id, null, deskripsi.trim(), file_path || null]
+      );
+    }
+    await db.run2("UPDATE instrumen SET status='diisi', updated_at=CURRENT_TIMESTAMP WHERE id=?", [req.params.id]);
+    res.json({ message: "Evaluasi disimpan" });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// PUT hasil audit auditor
+router.put("/:id/audit", verifyToken, requireRole("auditor"), async (req, res) => {
+  try {
+    const { skor, catatan, rekomendasi, tindak_lanjut } = req.body;
+    if (skor === undefined || skor === null)
+      return res.status(400).json({ message: "Skor wajib diisi" });
+    const instrumen = await db.get2("SELECT * FROM instrumen WHERE id=?", [req.params.id]);
+    if (!instrumen) return res.status(404).json({ message: "Instrumen tidak ditemukan" });
+    const exists = await db.get2(
+      "SELECT id FROM hasil_audit WHERE instrumen_id=? AND auditor_id=?",
+      [req.params.id, req.user.id]
+    );
+    if (exists) {
+      await db.run2(
+        "UPDATE hasil_audit SET skor=?, catatan=?, status=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+        [skor, catatan || null, "sesuai", exists.id]
+      );
+    } else {
+      await db.run2(
+        "INSERT INTO hasil_audit (instrumen_id, periode_id, prodi_id, auditor_id, skor, catatan, status) VALUES (?,?,?,?,?,?,?)",
+        [req.params.id, instrumen.periode_id, instrumen.prodi_id, req.user.id, skor, catatan || null, "sesuai"]
+      );
+    }
+    await db.run2("UPDATE instrumen SET status='selesai', updated_at=CURRENT_TIMESTAMP WHERE id=?", [req.params.id]);
+    res.json({ message: "Hasil audit disimpan" });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 // DELETE instrumen
 router.delete("/:id", verifyToken, requireRole("admin"), async (req, res) => {
   try {
     await db.run2("DELETE FROM instrumen WHERE id=?", [req.params.id]);
     res.json({ message: "Instrumen dihapus" });
-  } catch (err) { res.status(500).json({ message: err.message }); }
-});
-
-// POST evaluasi auditee
-router.post("/evaluasi", verifyToken, requireRole("auditee"), async (req, res) => {
-  try {
-    const { instrumen_id, periode_id, prodi_id, skor, catatan } = req.body;
-    if (!instrumen_id || !periode_id || !prodi_id)
-      return res.status(400).json({ message: "instrumen_id, periode_id, prodi_id wajib diisi" });
-    const exists = await db.get2(
-      "SELECT id FROM evaluasi_auditee WHERE instrumen_id=? AND periode_id=? AND prodi_id=? AND user_id=?",
-      [instrumen_id, periode_id, prodi_id, req.user.id]
-    );
-    if (exists) {
-      await db.run2(
-        "UPDATE evaluasi_auditee SET skor=?, catatan=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
-        [skor, catatan, exists.id]
-      );
-    } else {
-      await db.run2(
-        "INSERT INTO evaluasi_auditee (instrumen_id, periode_id, prodi_id, user_id, skor, catatan) VALUES (?,?,?,?,?,?)",
-        [instrumen_id, periode_id, prodi_id, req.user.id, skor, catatan]
-      );
-    }
-    res.json({ message: "Evaluasi disimpan" });
-  } catch (err) { res.status(500).json({ message: err.message }); }
-});
-
-// POST hasil audit auditor
-router.post("/audit", verifyToken, requireRole("auditor"), async (req, res) => {
-  try {
-    const { instrumen_id, periode_id, prodi_id, skor, catatan, status } = req.body;
-    if (!instrumen_id || !periode_id || !prodi_id)
-      return res.status(400).json({ message: "instrumen_id, periode_id, prodi_id wajib diisi" });
-    const exists = await db.get2(
-      "SELECT id FROM hasil_audit WHERE instrumen_id=? AND periode_id=? AND prodi_id=?",
-      [instrumen_id, periode_id, prodi_id]
-    );
-    if (exists) {
-      await db.run2(
-        "UPDATE hasil_audit SET skor=?, catatan=?, status=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
-        [skor, catatan, status || "sesuai", exists.id]
-      );
-    } else {
-      await db.run2(
-        "INSERT INTO hasil_audit (instrumen_id, periode_id, prodi_id, auditor_id, skor, catatan, status) VALUES (?,?,?,?,?,?,?)",
-        [instrumen_id, periode_id, prodi_id, req.user.id, skor, catatan, status || "sesuai"]
-      );
-    }
-    res.json({ message: "Hasil audit disimpan" });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 

@@ -53,7 +53,7 @@ export default function AdminDashboard() {
     setError("");
     try {
       const res = await api.get("/dashboard");
-      setData(res.data.data);
+      setData(res.data);
     } catch (err) {
       setError(err.response?.data?.message || "Gagal memuat data dashboard.");
     } finally {

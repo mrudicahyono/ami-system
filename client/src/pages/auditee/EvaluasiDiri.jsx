@@ -30,8 +30,8 @@ export default function EvaluasiDiri() {
   const fetchRefs = useCallback(async () => {
     try {
       const [s, sk] = await Promise.all([api.get("/standar"), api.get("/skor-config")]);
-      setStandar(s.data.data.standar || []);
-      setSkor(sk.data.data.skorConfig || []);
+      setStandar(s.data || []);
+      setSkor(sk.data || []);
     } catch {}
   }, []);
 
@@ -42,7 +42,7 @@ export default function EvaluasiDiri() {
       if (filters.standar_id) params.standar_id = filters.standar_id;
       if (filters.status)     params.status     = filters.status;
       const res = await api.get("/instrumen", { params });
-      setData(res.data.data.instrumen || []);
+      setData(res.data || []);
       setPage(1);
     } catch (err) {
       setError(err.response?.data?.message || "Gagal memuat data.");

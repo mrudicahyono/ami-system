@@ -29,9 +29,9 @@ export default function InstrumenAudit() {
   const fetchRefs = useCallback(async () => {
     try {
       const [s, p, sk] = await Promise.all([api.get("/standar"), api.get("/prodi"), api.get("/skor-config")]);
-      setStandar(s.data.data.standar || []);
-      setProdi(p.data.data.prodi || []);
-      setSkor(sk.data.data.skorConfig || []);
+      setStandar(s.data || []);
+      setProdi(p.data || []);
+      setSkor(sk.data || []);
     } catch {}
   }, []);
 
@@ -43,7 +43,7 @@ export default function InstrumenAudit() {
       if (filters.prodi_id)   params.prodi_id   = filters.prodi_id;
       if (filters.status)     params.status     = filters.status;
       const res = await api.get("/instrumen", { params });
-      setData(res.data.data.instrumen || []);
+      setData(res.data || []);
       setPage(1);
     } catch (err) {
       setError(err.response?.data?.message || "Gagal memuat data.");
