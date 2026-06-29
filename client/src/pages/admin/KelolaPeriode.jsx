@@ -31,8 +31,8 @@ export default function KelolaPeriode() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const openAdd  = () => { setForm({ nama: "", aktif: false }); setModal({ mode: "add" }); };
-  const openEdit = (row) => { setForm({ nama: row.nama, aktif: row.aktif === 1 }); setModal({ mode: "edit", data: row }); };
+const openAdd  = () => { setError(""); setForm({ nama: "", aktif: false }); setModal({ mode: "add" }); };
+const openEdit = (row) => { setError(""); setForm({ nama: row.nama, aktif: row.aktif === 1 }); setModal({ mode: "edit", data: row }); };
 
   const handleSave = useCallback(async () => {
     if (!form.nama.trim()) { setError("Nama periode wajib diisi."); return; }
