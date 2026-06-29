@@ -33,11 +33,11 @@ router.get("/", verifyToken, async (req, res) => {
       progressProdi = await db.all2(`
         SELECT p.nama as prodi,
           COUNT(ha.id) as sudah_diaudit,
-          (SELECT COUNT(*) FROM instrumen) as total_instrumen
+          (SELECT COUNT(*) FROM instrumen WHERE prodi_id = p.id AND periode_id = ?) as total_instrumen
         FROM prodi p
-        LEFT JOIN hasil_audit ha ON ha.prodi_id = p.id AND ha.periode_id=?
+        LEFT JOIN hasil_audit ha ON ha.prodi_id = p.id AND ha.periode_id = ?
         GROUP BY p.id ORDER BY p.nama
-      `, [periode_id]);
+      `, [periode_id, periode_id]);
     }
 
     res.json({

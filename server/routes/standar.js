@@ -31,6 +31,9 @@ router.put("/:id", verifyToken, requireRole("admin"), async (req, res) => {
 
 router.delete("/:id", verifyToken, requireRole("admin"), async (req, res) => {
   try {
+    const used = await db.get2("SELECT COUNT(*) as total FROM instrumen WHERE standar_id=?", [req.params.id]);
+    if (used.total > 0)
+      return res.status(400).json({ message: `Tidak bisa dihapus — digunakan oleh ${used.total} instrumen` });
     await db.run2("DELETE FROM standar WHERE id=?", [req.params.id]);
     res.json({ message: "Standar dihapus" });
   } catch (err) { res.status(500).json({ message: err.message }); }
