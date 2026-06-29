@@ -112,12 +112,12 @@ export default function Sidebar({ collapsed, onClose }) {
         onClick={() => handleNav(item.path)}
         style={{
           width: "100%", display: "flex", alignItems: "center",
-          gap: 10, padding: "8px 12px",
+          gap: 12, padding: "10px 14px",
           borderRadius: T.radiusSm, border: "none",
           background: active ? T.primaryLight : "transparent",
           color: active ? T.primary : T.textSecondary,
           fontWeight: active ? 600 : 400,
-          fontSize: 13.5, cursor: "pointer",
+          fontSize: 14, cursor: "pointer",
           marginBottom: 2, textAlign: "left",
           transition: "all 0.15s ease",
         }}
