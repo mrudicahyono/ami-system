@@ -8,7 +8,13 @@ const config = require("../config");
 // GET all users (admin only)
 router.get("/", verifyToken, requireRole("admin"), async (req, res) => {
   try {
-    const users = await db.all2("SELECT id, nama, username, role, avatar, created_at FROM users ORDER BY id");
+    const { role } = req.query;
+    let users;
+    if (role) {
+      users = await db.all2("SELECT id, nama, username, role, avatar, created_at FROM users WHERE role=? ORDER BY id", [role]);
+    } else {
+      users = await db.all2("SELECT id, nama, username, role, avatar, created_at FROM users ORDER BY id");
+    }
     res.json(users);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
