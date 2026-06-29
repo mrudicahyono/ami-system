@@ -7,6 +7,8 @@ import FilterBar from "../../components/FilterBar.jsx";
 import Pagination from "../../components/Pagination.jsx";
 import StatusBadge from "../../components/StatusBadge.jsx";
 import SkorBadge from "../../components/SkorBadge.jsx";
+import ErrorAlert from "../../components/ErrorAlert.jsx";
+import AddButton from "../../components/AddButton.jsx";
 import CONFIG from "../../config.js";
 import api from "../../api.js";
 
@@ -26,14 +28,13 @@ export default function KelolaInstrumen() {
   const [skorConfig, setSkor]     = useState([]);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState("");
-  const [modal, setModal]         = useState(null); // null | { mode: 'add'|'edit', data? }
+  const [modal, setModal]         = useState(null);
   const [form, setForm]           = useState(emptyForm);
   const [saving, setSaving]       = useState(false);
   const [page, setPage]           = useState(1);
   const [pageSize, setPageSize]   = useState(CONFIG.defaultPageSize);
   const [filters, setFilters]     = useState({ standar_id: "", prodi_id: "", status: "" });
 
-  // Fetch semua referensi data
   const fetchRefs = useCallback(async () => {
     try {
       const [s, p, per, u, sk] = await Promise.all([
@@ -80,9 +81,9 @@ export default function KelolaInstrumen() {
 
   const openEdit = useCallback((row) => {
     setForm({
-      standar_id:  row.standar_id || "",
-      prodi_id:    row.prodi_id   || "",
-      periode_id:  row.periode_id || "",
+      standar_id:  row.standar_id  || "",
+      prodi_id:    row.prodi_id    || "",
+      periode_id:  row.periode_id  || "",
       auditor1_id: row.auditor1_id || "",
       auditor2_id: row.auditor2_id || "",
       auditee_id:  row.auditee_id  || "",
@@ -134,7 +135,6 @@ export default function KelolaInstrumen() {
     setFilters((p) => ({ ...p, [key]: val }));
   }, []);
 
-  // Paginasi client-side
   const paginatedData = useMemo(() => {
     const start = (page - 1) * pageSize;
     return data.slice(start, start + pageSize);
@@ -150,20 +150,20 @@ export default function KelolaInstrumen() {
   });
 
   const columns = [
-    { key: "no",    label: "No",       width: 48,  align: "center", render: (_, __, i) => (page - 1) * pageSize + i + 1 },
-    { key: "standar_nama",  label: "Standar",  render: (_, r) => <span style={{ fontSize: 13 }}>{r.standar_nama || "-"}</span> },
-    { key: "prodi_nama", label: "Prodi", render: (_, r) => (
+    { key: "no",          label: "No",       width: 48, align: "center", render: (_, __, i) => (page - 1) * pageSize + i + 1 },
+    { key: "standar_nama",label: "Standar",  render: (_, r) => <span style={{ fontSize: 13 }}>{r.standar_nama || "-"}</span> },
+    { key: "prodi_nama",  label: "Prodi",    render: (_, r) => (
       <span>
         <span style={{ fontWeight: 600, fontSize: 12, color: T.primary }}>{r.prodi_kode}</span>
         <span style={{ fontSize: 12, color: T.textSecondary, marginLeft: 4 }}>{r.prodi_nama}</span>
       </span>
-)},
-    { key: "auditor1", label: "Auditor 1", render: (_, r) => <span style={{ fontSize: 13 }}>{r.auditor1_nama || "-"}</span> },
-    { key: "auditor2", label: "Auditor 2", render: (_, r) => <span style={{ fontSize: 13 }}>{r.auditor2_nama || "-"}</span> },
-    { key: "auditee",  label: "Auditee",   render: (_, r) => <span style={{ fontSize: 13 }}>{r.auditee_nama || "-"}</span> },
-    { key: "status",   label: "Status",    render: (_, r) => <StatusBadge status={r.status} /> },
-    { key: "skor",     label: "Skor",      align: "center", render: (_, r) => <SkorBadge skor={r.hasil_audit?.skor} skorConfig={skorConfig} /> },
-    { key: "aksi",     label: "Aksi",      align: "center", render: (_, r) => (
+    )},
+    { key: "auditor1",    label: "Auditor 1",render: (_, r) => <span style={{ fontSize: 13 }}>{r.auditor1_nama || "-"}</span> },
+    { key: "auditor2",    label: "Auditor 2",render: (_, r) => <span style={{ fontSize: 13 }}>{r.auditor2_nama || "-"}</span> },
+    { key: "auditee",     label: "Auditee",  render: (_, r) => <span style={{ fontSize: 13 }}>{r.auditee_nama || "-"}</span> },
+    { key: "status",      label: "Status",   render: (_, r) => <StatusBadge status={r.status} /> },
+    { key: "skor",        label: "Skor",     align: "center", render: (_, r) => <SkorBadge skor={r.hasil_audit?.skor} skorConfig={skorConfig} /> },
+    { key: "aksi",        label: "Aksi",     align: "center", render: (_, r) => (
       <div style={{ display: "flex", justifyContent: "center" }}>
         <button onClick={() => openEdit(r)} style={btnStyle(T.primary, T.primaryLight)}>{CONFIG.labels.edit}</button>
         <button onClick={() => handleDelete(r)} style={btnStyle(T.danger, T.dangerLight)}>{CONFIG.labels.hapus}</button>
@@ -180,22 +180,17 @@ export default function KelolaInstrumen() {
 
   return (
     <Layout title="Kelola Instrumen Audit">
-      {error && (
-        <div style={{ padding: "10px 14px", background: T.dangerLight, color: T.danger, borderRadius: T.radiusSm, marginBottom: 12 }}>
-          ⚠️ {error}
-        </div>
-      )}
+      <ErrorAlert message={error} />
 
-      {/* Toolbar */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
         <FilterBar
           filters={[
             { key: "standar_id", type: "select", label: "Standar", options: standarList.map((s) => ({ value: s.id, label: s.nama })) },
             { key: "prodi_id",   type: "select", label: "Prodi",   options: prodiList.map((p) => ({ value: p.id, label: `${p.kode} - ${p.nama}` })) },
             { key: "status",     type: "select", label: "Status",  options: [
-              { value: "belum", label: "Belum Diisi" },
-              { value: "diisi", label: "Sudah Diisi" },
-              { value: "proses", label: "Proses Audit" },
+              { value: "belum",   label: "Belum Diisi" },
+              { value: "diisi",   label: "Sudah Diisi" },
+              { value: "proses",  label: "Proses Audit" },
               { value: "selesai", label: "Selesai" },
             ]},
           ]}
@@ -203,17 +198,7 @@ export default function KelolaInstrumen() {
           onChange={handleFilterChange}
           onReset={() => setFilters({ standar_id: "", prodi_id: "", status: "" })}
         />
-        <button
-          onClick={openAdd}
-          style={{
-            padding: "8px 16px", background: T.primary, color: "#fff",
-            border: "none", borderRadius: T.radiusSm, fontSize: 13,
-            fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
-            display: "flex", alignItems: "center", gap: 6,
-          }}
-        >
-          ＋ {CONFIG.labels.tambah}
-        </button>
+        <AddButton onClick={openAdd} />
       </div>
 
       <DataTable columns={columns} data={paginatedData} loading={loading} />
@@ -223,7 +208,6 @@ export default function KelolaInstrumen() {
         onPageChange={setPage} onPageSizeChange={setPageSize}
       />
 
-      {/* Modal form */}
       <Modal
         open={!!modal}
         onClose={() => { setModal(null); setError(""); }}
@@ -239,7 +223,7 @@ export default function KelolaInstrumen() {
           </>
         }
       >
-        {error && <div style={{ padding: "8px 12px", background: T.dangerLight, color: T.danger, borderRadius: T.radiusSm, marginBottom: 12, fontSize: 13 }}>⚠️ {error}</div>}
+        <ErrorAlert message={error} />
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
           <div style={{ gridColumn: "1/-1" }}>
