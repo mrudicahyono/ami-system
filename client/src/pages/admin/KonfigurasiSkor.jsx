@@ -6,14 +6,15 @@ import CONFIG from "../../config.js";
 import api from "../../api.js";
 
 const T = CONFIG.theme;
+const emptyForm = { nilai: "", label: "", warna: "#6B7280", bg_warna: "#F3F4F6" };
 
 export default function KonfigurasiSkor() {
-  const [data, setData]     = useState([]);
+  const [data, setData]       = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError]   = useState("");
-  const [modal, setModal]   = useState(null);
-  const [form, setForm]     = useState({ label: "", warna: "", bg_warna: "" });
-  const [saving, setSaving] = useState(false);
+  const [error, setError]     = useState("");
+  const [modal, setModal]     = useState(null); // null | { mode: 'add'|'edit', data? }
+  const [form, setForm]       = useState(emptyForm);
+  const [saving, setSaving]   = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true); setError("");
@@ -27,25 +28,34 @@ export default function KonfigurasiSkor() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const openEdit = (row) => {
-    setForm({ label: row.label, warna: row.warna, bg_warna: row.bg_warna });
-    setModal({ data: row });
-  };
+  const openAdd  = () => { setError(""); setForm(emptyForm); setModal({ mode: "add" }); };
+  const openEdit = (row) => { setError(""); setForm({ nilai: row.nilai, label: row.label, warna: row.warna, bg_warna: row.bg_warna }); setModal({ mode: "edit", data: row }); };
 
   const handleSave = useCallback(async () => {
-    if (!form.label.trim()) { setError("Label wajib diisi."); return; }
+    if (form.nilai === "" || !form.label.trim()) { setError("Nilai dan label wajib diisi."); return; }
     setSaving(true); setError("");
     try {
-      await api.put(`/skor-config/${modal.data.id}`, {
-        label: form.label.trim(),
-        warna: form.warna,
-        bg_warna: form.bg_warna,
-      });
+      const payload = { nilai: Number(form.nilai), label: form.label.trim(), warna: form.warna, bg_warna: form.bg_warna };
+      if (modal.mode === "add") {
+        await api.post("/skor-config", payload);
+      } else {
+        await api.put(`/skor-config/${modal.data.id}`, payload);
+      }
       setModal(null); fetchData();
     } catch (err) {
       setError(err.response?.data?.message || "Gagal menyimpan.");
     } finally { setSaving(false); }
   }, [form, modal, fetchData]);
+
+  const handleDelete = useCallback(async (row) => {
+    if (!window.confirm(`Hapus skor ${row.nilai} — ${row.label}?`)) return;
+    try {
+      await api.delete(`/skor-config/${row.id}`);
+      fetchData();
+    } catch (err) {
+      setError(err.response?.data?.message || "Gagal menghapus.");
+    }
+  }, [fetchData]);
 
   const inputStyle = { width: "100%", padding: "9px 12px", border: `1px solid ${T.border}`, borderRadius: T.radiusSm, fontSize: 13, outline: "none", boxSizing: "border-box" };
 
@@ -54,11 +64,13 @@ export default function KonfigurasiSkor() {
       {error && <div style={{ padding: "10px 14px", background: T.dangerLight, color: T.danger, borderRadius: T.radiusSm, marginBottom: 16 }}>⚠️ {error}</div>}
 
       <div style={{ background: T.bgCard, borderRadius: T.radius, boxShadow: T.shadow, overflow: "hidden" }}>
-        {/* Keterangan */}
-        <div style={{ padding: "16px 20px", borderBottom: `1px solid ${T.border}`, background: T.bgTableHeader }}>
+        <div style={{ padding: "16px 20px", borderBottom: `1px solid ${T.border}`, background: T.bgTableHeader, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <p style={{ fontSize: 13, color: T.textSecondary, margin: 0 }}>
-            Nilai skor (0–4) tidak dapat diubah. Anda hanya dapat mengubah label teks dan warna tampilan.
+            Tambah, ubah, atau hapus skala skor sesuai kebutuhan institusi.
           </p>
+          <button onClick={openAdd} style={{ padding: "7px 14px", background: T.primary, color: "#fff", border: "none", borderRadius: T.radiusSm, fontSize: 13, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+            ＋ Tambah Skor
+          </button>
         </div>
 
         {loading ? (
@@ -66,35 +78,15 @@ export default function KonfigurasiSkor() {
         ) : (
           <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
             {data.map((s) => (
-              <div key={s.id} style={{
-                display: "flex", alignItems: "center", gap: 16,
-                padding: "14px 16px", border: `1px solid ${T.border}`,
-                borderRadius: T.radiusSm, background: T.bgPage,
-              }}>
-                {/* Nilai angka */}
-                <div style={{
-                  width: 48, height: 48, borderRadius: "50%",
-                  background: s.bg_warna, color: s.warna,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 20, fontWeight: 800, flexShrink: 0,
-                  border: `2px solid ${s.warna}`,
-                }}>
+              <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 16, padding: "14px 16px", border: `1px solid ${T.border}`, borderRadius: T.radiusSm, background: T.bgPage }}>
+                <div style={{ width: 48, height: 48, borderRadius: "50%", background: s.bg_warna, color: s.warna, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 800, flexShrink: 0, border: `2px solid ${s.warna}` }}>
                   {s.nilai}
                 </div>
-
-                {/* Label preview */}
                 <div style={{ flex: 1 }}>
-                  <span style={{
-                    display: "inline-flex", alignItems: "center",
-                    padding: "4px 14px", borderRadius: T.radiusPill,
-                    background: s.bg_warna, color: s.warna,
-                    fontSize: 13, fontWeight: 700,
-                  }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", padding: "4px 14px", borderRadius: T.radiusPill, background: s.bg_warna, color: s.warna, fontSize: 13, fontWeight: 700 }}>
                     {s.nilai} — {s.label}
                   </span>
                 </div>
-
-                {/* Swatch warna */}
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                     <div style={{ width: 18, height: 18, borderRadius: 4, background: s.warna, border: `1px solid ${T.border}` }} />
@@ -105,31 +97,25 @@ export default function KonfigurasiSkor() {
                     <span style={{ fontSize: 11, color: T.textMuted, fontFamily: "monospace" }}>{s.bg_warna}</span>
                   </div>
                 </div>
-
-                {/* Tombol edit */}
-                <button
-                  onClick={() => openEdit(s)}
-                  style={{
-                    padding: "6px 14px", border: "none",
-                    borderRadius: T.radiusSm,
-                    background: T.primaryLight, color: T.primary,
-                    fontSize: 12, fontWeight: 500, cursor: "pointer",
-                    flexShrink: 0,
-                  }}
-                >
+                <button onClick={() => openEdit(s)} style={{ padding: "6px 14px", border: "none", borderRadius: T.radiusSm, background: T.primaryLight, color: T.primary, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
                   ✏️ {CONFIG.labels.edit}
+                </button>
+                <button onClick={() => handleDelete(s)} style={{ padding: "6px 14px", border: "none", borderRadius: T.radiusSm, background: T.dangerLight, color: T.danger, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
+                  {CONFIG.labels.hapus}
                 </button>
               </div>
             ))}
+            {data.length === 0 && (
+              <div style={{ textAlign: "center", padding: 40, color: T.textMuted }}>Belum ada skala skor. Klik "+ Tambah Skor" untuk mulai.</div>
+            )}
           </div>
         )}
       </div>
 
-      {/* Modal edit skor */}
       <Modal
         open={!!modal}
         onClose={() => { setModal(null); setError(""); }}
-        title={`Edit Skor ${modal?.data?.nilai} — ${modal?.data?.label}`}
+        title={modal?.mode === "add" ? "Tambah Skala Skor" : `Edit Skor ${modal?.data?.nilai} — ${modal?.data?.label}`}
         footer={
           <>
             <button onClick={() => { setModal(null); setError(""); }} style={{ padding: "8px 18px", border: `1px solid ${T.border}`, borderRadius: T.radiusSm, background: T.bgCard, fontSize: 13, cursor: "pointer" }}>{CONFIG.labels.batal}</button>
@@ -141,16 +127,25 @@ export default function KonfigurasiSkor() {
       >
         {error && <div style={{ padding: "8px 12px", background: T.dangerLight, color: T.danger, borderRadius: T.radiusSm, marginBottom: 12, fontSize: 13 }}>⚠️ {error}</div>}
 
-        {/* Preview live */}
         {form.warna && form.bg_warna && (
           <div style={{ textAlign: "center", marginBottom: 16 }}>
             <span style={{ padding: "6px 18px", borderRadius: T.radiusPill, background: form.bg_warna, color: form.warna, fontSize: 14, fontWeight: 700 }}>
-              {modal?.data?.nilai} — {form.label || "Label"}
+              {form.nilai !== "" ? form.nilai : "?"} — {form.label || "Label"}
             </span>
           </div>
         )}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: T.textSecondary, marginBottom: 6 }}>Nilai Skor *</label>
+            <input
+              type="number"
+              value={form.nilai}
+              onChange={(e) => setForm((p) => ({ ...p, nilai: e.target.value }))}
+              placeholder="Contoh: 0, 1, 2, 3, 4"
+              style={inputStyle}
+            />
+          </div>
           <div>
             <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: T.textSecondary, marginBottom: 6 }}>Label *</label>
             <input value={form.label} onChange={(e) => setForm((p) => ({ ...p, label: e.target.value }))} placeholder="Contoh: Sangat Baik" style={inputStyle} />
