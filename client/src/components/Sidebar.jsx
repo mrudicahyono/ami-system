@@ -142,12 +142,12 @@ export default function Sidebar({ collapsed, onClose }) {
           {getIconForKey(item.key)}
         </span>
         <span style={{ flex: 1 }}>{item.label}</span>
-        {active && (
-          <div style={{
-            width: 3, height: 16, borderRadius: 2,
-            background: T.primary, flexShrink: 0,
-          }} />
-        )}
+        <div style={{
+          width: 3, height: 16, borderRadius: 2,
+          background: T.primary, flexShrink: 0,
+          opacity: active ? 1 : 0,
+          transition: "opacity 0.15s ease",
+        }} />
       </button>
     );
   };
