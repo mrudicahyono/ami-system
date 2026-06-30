@@ -15,7 +15,8 @@ router.get("/", verifyToken, async (req, res) => {
         u1.nama as auditor1_nama, u2.nama as auditor2_nama, ua.nama as auditee_nama,
         ev.skor as skor_auditee, ev.catatan as catatan_auditee, ev.file_path,
         ha.skor as skor_auditor, ha.catatan as catatan_auditor,
-        ha.rekomendasi, ha.perlu_rtl, ha.status as hasil_status
+        ha.rekomendasi, ha.perlu_rtl, ha.status as hasil_status, 
+        tl.status as rtl_status
       FROM instrumen i
       JOIN indikator ind ON i.indikator_id = ind.id
       JOIN standar s ON ind.standar_id = s.id
@@ -26,6 +27,7 @@ router.get("/", verifyToken, async (req, res) => {
       LEFT JOIN evaluasi_auditee ev ON ev.instrumen_id = i.id
         AND ev.periode_id = i.periode_id AND ev.prodi_id = i.prodi_id
       LEFT JOIN hasil_audit ha ON ha.instrumen_id = i.id
+      LEFT JOIN tindak_lanjut tl ON tl.instrumen_id = i.id
         AND ha.periode_id = i.periode_id AND ha.prodi_id = i.prodi_id
       WHERE 1=1
     `;
